@@ -1,0 +1,5 @@
+[package]
+
+name = "rimd"
+version = "0.0.1"
+authors = ["Nick Lanham <nick@afternight.org>"]
