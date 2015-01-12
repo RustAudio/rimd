@@ -82,7 +82,7 @@ impl MidiMessage {
         (self.data[0] & CHANNEL_MASK) + 1
     }
 
-    pub fn data(&self, index: uint) -> u8 {
+    pub fn data(&self, index: usize) -> u8 {
         self.data[index]
     }
 
@@ -115,7 +115,7 @@ impl MidiMessage {
     // -1 -> variable sized message, call get_variable_size
     // -2 -> sysex, read until SysExEnd
     // -3 -> invalid status
-    pub fn data_bytes(status: u8) -> int {
+    pub fn data_bytes(status: u8) -> isize {
         match FromPrimitive::from_u8(status & STATUS_MASK) {
             Some(stat) => {
                 match stat {
@@ -169,7 +169,7 @@ impl MidiMessage {
     }
 }
 
-impl fmt::Show for Status {
+impl fmt::String for Status {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}",
                match *self {
@@ -196,7 +196,7 @@ impl fmt::Show for Status {
     }
 }
 
-impl fmt::Show for MidiMessage {
+impl fmt::String for MidiMessage {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if self.data.len() == 2 {
             write!(f, "{}: [{}]\tchannel: {}", self.status(),self.data[1],self.channel())

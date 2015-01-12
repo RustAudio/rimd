@@ -11,9 +11,9 @@ fn main() {
             println!("division: {}",smf.division);
             let mut tnum = 1;
             for track in smf.tracks.iter() {
-                println!("\nTrack {}:",tnum);
+                println!("\n{}: {}\nevents:",tnum,track);
                 tnum+=1;
-                for event in track.iter() {
+                for event in track.events.iter() {
                     println!("  {}",event);
                 }
             }

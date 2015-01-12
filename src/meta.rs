@@ -2,6 +2,8 @@ use std::error;
 use std::io::{IoError,Reader};
 use std::fmt;
 use std::num::{FromPrimitive,Int};
+use std::string::FromUtf8Error;
+
 use SMF;
 
 pub enum MetaError {
@@ -43,7 +45,7 @@ pub struct MetaEvent {
     pub data: Vec<u8>,
 }
 
-impl fmt::Show for MetaEvent {
+impl fmt::String for MetaEvent {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "Meta Event: {}",
                match self.command {
@@ -70,7 +72,7 @@ impl fmt::Show for MetaEvent {
                    MetaCommand::SMPTEOffset => format!("SMPTEOffset"),
                    MetaCommand::TimeSignature => format!("Time Signature: {}/{}, {} ticks/metronome click, {} 32nd notes/quarter note",
                                                          self.data[0],
-                                                         2u.pow(self.data[1] as uint),
+                                                         2us.pow(self.data[1] as usize),
                                                          self.data[2],
                                                          self.data[3]),
                    MetaCommand::KeySignature => format!("Key Signature, {} sharps/flats, {}",
@@ -89,13 +91,17 @@ impl fmt::Show for MetaEvent {
 
 impl MetaEvent {
 
-    pub fn data_as_u64(&self,bytes: uint) -> u64 {
+    pub fn data_as_u64(&self,bytes: usize) -> u64 {
         let mut res = 0;
-        for i in range(0,bytes) {
+        for i in (0..bytes) {
             res <<= 8;
             res |= self.data[i] as u64;
         }
         res
+    }
+
+    pub fn data_as_text(&self) -> Result<String,FromUtf8Error> {
+        String::from_utf8(self.data.clone())
     }
 
     pub fn next_event(reader: &mut Reader) -> Result<MetaEvent, MetaError> {
@@ -108,7 +114,7 @@ impl MetaEvent {
             Ok(t) => { t }
             Err(_) => { return Err(MetaError::OtherErr("Couldn't read time for meta command")); }
         };
-        let data = try!(reader.read_exact(len as uint));
+        let data = try!(reader.read_exact(len as usize));
         Ok(MetaEvent{
             command: command,
             length: len,

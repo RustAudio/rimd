@@ -2,6 +2,7 @@ use std::error;
 use std::io::{File,IoError,IoErrorKind,Reader};
 use std::io::util::{IterReader};
 use std::fmt;
+use std::string::FromUtf8Error;
 
 pub use midi:: {
     MidiError,
@@ -9,6 +10,7 @@ pub use midi:: {
 };
 
 pub use meta:: {
+    MetaCommand,
     MetaError,
     MetaEvent,
 };
@@ -24,7 +26,7 @@ pub enum SMFFormat {
 
 impl Copy for SMFFormat {}
 
-impl fmt::Show for SMFFormat {
+impl fmt::String for SMFFormat {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}",match *self {
             SMFFormat::Single     => "single track",
@@ -40,7 +42,7 @@ pub enum Event {
     Meta(MetaEvent),
 }
 
-impl fmt::Show for Event {
+impl fmt::String for Event {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             Event::Midi(ref m) => { write!(f, "{}", m) }
@@ -54,15 +56,36 @@ pub struct TrackEvent {
     pub event: Event,
 }
 
-impl fmt::Show for TrackEvent {
+impl fmt::String for TrackEvent {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "time: {}\t{}",self.vtime,self.event)
     }
 }
 
+pub struct Track {
+    pub copyright: Option<String>,
+    pub name: Option<String>,
+    pub events: Vec<TrackEvent>
+}
+
+impl fmt::String for Track {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Track, copyright: {}, name: {}",
+               match self.copyright {
+                   Some(ref c) => c.as_slice(),
+                   None => "[none]"
+               },
+               match self.name {
+                   Some(ref n) => n.as_slice(),
+                   None => "[none]"
+               })
+    }
+}
+
+
 pub struct SMF {
     pub format: SMFFormat,
-    pub tracks: Vec<Vec<TrackEvent>>,
+    pub tracks: Vec<Track>,
     pub division: u16,
 }
 
@@ -99,6 +122,12 @@ impl error::FromError<MidiError> for SMFError {
 impl error::FromError<MetaError> for SMFError {
     fn from_error(err: MetaError) -> SMFError {
         SMFError::MetaError(err)
+    }
+}
+
+impl error::FromError<FromUtf8Error> for SMFError {
+    fn from_error(err: FromUtf8Error) -> SMFError {
+        SMFError::InvalidSMFFile("Invalid UTF8 data in file")
     }
 }
 
@@ -172,7 +201,7 @@ impl SMF {
         let division = (header[12] as u16) << 8 | header[13] as u16;
 
         Ok(SMF { format: format,
-                 tracks: Vec::with_capacity(tracks as uint),
+                 tracks: Vec::with_capacity(tracks as usize),
                  division: division } )
     }
 
@@ -198,9 +227,13 @@ impl SMF {
         }
     }
 
-    fn parse_track(reader: &mut Reader) -> Result<Vec<TrackEvent>,SMFError> {
+    fn parse_track(reader: &mut Reader) -> Result<Track,SMFError> {
         let mut res:Vec<TrackEvent> = Vec::new();
         let mut buf:[u8;4] = [0;4];
+
+        let mut copyright = None;
+        let mut name = None;
+
         try!(reader.read_at_least(4,&mut buf));
         if buf[0] != 0x4D ||
            buf[1] != 0x54 ||
@@ -213,19 +246,35 @@ impl SMF {
             ((buf[0] as u32) << 24 |
             (buf[1] as u32) << 16 |
             (buf[2] as u32) << 8 |
-            (buf[3] as u32)) as uint;
+            (buf[3] as u32)) as usize;
         let mut data = IterReader::new(try!(reader.read_exact(len)).into_iter());
         let mut time: u64 = 0;
         loop {
             match SMF::next_event(&mut data,&mut time) {
-                Ok(event) => res.push(event),
+                Ok(event) => {
+                    match event.event {
+                        Event::Meta(ref me) => {
+                            match me.command {
+                                MetaCommand::CopyrightNotice => copyright = Some(try!(me.data_as_text())),
+                                MetaCommand::SequenceOrTrackName => name = Some(try!(me.data_as_text())),
+                                _ => {}
+                            }
+                        },
+                        _ => {}
+                    }
+                    res.push(event)
+                },
                 Err(err) => {
                     if err.is_eof() { break; }
                     else { return Err(err); }
                 }
             }
         }
-        Ok(res)
+        Ok(Track {
+            copyright: copyright,
+            name: name,
+            events: res
+        })
     }
 
     pub fn from_file(path: &Path) -> Result<SMF,SMFError> {
@@ -233,7 +282,7 @@ impl SMF {
         let mut smf = SMF::parse_header(&mut file);
         match smf {
             Ok(ref mut s) => {
-                for _ in range(0,s.tracks.capacity()) {
+                for _ in 0..s.tracks.capacity() {
                     s.tracks.push(try!(SMF::parse_track(&mut file)));
                 }
             }
