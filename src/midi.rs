@@ -4,7 +4,7 @@ use std::num::FromPrimitive;
 use std::fmt;
 
 pub enum MidiError {
-    InvalidStatus,
+    InvalidStatus(u8),
     OtherErr(&'static str),
     IoError(IoError),
 }
@@ -15,28 +15,30 @@ impl error::FromError<IoError> for MidiError {
     }
 }
 
-// impl error::Error for MidiError {
-//     fn description(&self) -> &str {
-//         match *self {
-//             SMFError::InvalidSMFFile(_) => "The SMF file was invalid",
-//             SMFError::IoError(_)        => "An I/O error occured",
-//         }
-//     }
+impl error::Error for MidiError {
+    fn description(&self) -> &str {
+        match *self {
+            MidiError::InvalidStatus(_) => "Midi data has invalid status byte",
+            MidiError::OtherErr(_) => "A general midi error has occured",
+            MidiError::IoError(ref e) => e.description(),
+        }
+    }
 
-//     fn detail(&self) -> Option<String> {
-//         match *self {
-//             SMFError::InvalidSMFFile(s) => Some(format!("SMF file is invalid: {}",s)),
-//             SMFError::IoError(ref err)  => err.detail(),
-//         }
-//     }
+    fn detail(&self) -> Option<String> {
+        match *self {
+            MidiError::InvalidStatus(ref s) => Some(format!("Invalid Midi status: {}",s)),
+            MidiError::OtherErr(ref s) => Some(format!("Midi Error: {}",s)),
+            MidiError::IoError(ref e) => e.detail(),
+        }
+    }
 
-//     fn cause(&self) -> Option<&error::Error> {
-//         match *self {
-//             SMFError::IoError(ref err) => Some(err as &error::Error),
-//             _ => None,
-//         }
-//     }
-// }
+    fn cause(&self) -> Option<&error::Error> {
+        match *self {
+            MidiError::IoError(ref err) => Some(err as &error::Error),
+            _ => None,
+        }
+    }
+}
 
 #[derive(FromPrimitive)]
 pub enum Status {
@@ -157,7 +159,7 @@ impl MidiMessage {
                    ret.push(try!(reader.read_byte())); }
             -1 => { return Err(MidiError::OtherErr("Don't handle variable sized yet")); }
             -2 => { return Err(MidiError::OtherErr("Don't handle sysex yet")); }
-            _ =>  { return Err(MidiError::InvalidStatus); }
+            _ =>  { return Err(MidiError::InvalidStatus(stat)); }
         }
         Ok(MidiMessage{data: ret})
     }

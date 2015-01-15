@@ -133,9 +133,9 @@ impl error::Error for SMFError {
     fn description(&self) -> &str {
         match *self {
             SMFError::InvalidSMFFile(_) => "The SMF file was invalid",
-            SMFError::IoError(_)        => "An I/O error occured",
-            SMFError::MidiError(_)      => "Invalid Midi Data",
-            SMFError::MetaError(_)      => "Invalid Meta Data",
+            SMFError::IoError(ref e)        => e.description(),
+            SMFError::MidiError(ref m)      => m.description(),
+            SMFError::MetaError(ref m)      => m.description(),
         }
     }
 
@@ -143,13 +143,15 @@ impl error::Error for SMFError {
         match *self {
             SMFError::InvalidSMFFile(s) => Some(format!("SMF file is invalid: {}",s)),
             SMFError::IoError(ref err)  => err.detail(),
-            SMFError::MidiError(_) => Some(format!("Invalid Midi Data detail")),
-            SMFError::MetaError(_) => Some(format!("Invalid Meta Data detail")),
+            SMFError::MidiError(ref m) => m.detail(),
+            SMFError::MetaError(ref m) => m.detail(),
         }
     }
 
     fn cause(&self) -> Option<&error::Error> {
         match *self {
+            SMFError::MidiError(ref m) => Some(m as &error::Error),
+            SMFError::MetaError(ref m) => Some(m as &error::Error),
             SMFError::IoError(ref err) => Some(err as &error::Error),
             _ => None,
         }

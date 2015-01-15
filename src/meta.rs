@@ -7,7 +7,7 @@ use std::string::FromUtf8Error;
 use reader::SMFReader;
 
 pub enum MetaError {
-    InvalidCommand,
+    InvalidCommand(u8),
     OtherErr(&'static str),
     IoError(IoError),
 }
@@ -15,6 +15,31 @@ pub enum MetaError {
 impl error::FromError<IoError> for MetaError {
     fn from_error(err: IoError) -> MetaError {
         MetaError::IoError(err)
+    }
+}
+
+impl error::Error for MetaError {
+    fn description(&self) -> &str {
+        match *self {
+            MetaError::InvalidCommand(_) => "Invalid meta command",
+            MetaError::OtherErr(_) => "A general midi error has occured",
+            MetaError::IoError(ref e) => e.description(),
+        }
+    }
+
+    fn detail(&self) -> Option<String> {
+        match *self {
+            MetaError::InvalidCommand(ref c) => Some(format!("Invalid Meta command: {}",c)),
+            MetaError::OtherErr(ref s) => Some(format!("Meta Error: {}",s)),
+            MetaError::IoError(ref e) => e.detail(),
+        }
+    }
+
+    fn cause(&self) -> Option<&error::Error> {
+        match *self {
+            MetaError::IoError(ref err) => Some(err as &error::Error),
+            _ => None,
+        }
     }
 }
 
