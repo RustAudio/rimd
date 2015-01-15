@@ -4,7 +4,7 @@ use std::fmt;
 use std::num::{FromPrimitive,Int};
 use std::string::FromUtf8Error;
 
-use SMF;
+use reader::SMFReader;
 
 pub enum MetaError {
     InvalidCommand,
@@ -110,7 +110,7 @@ impl MetaEvent {
                 Some(c) => {c},
                 None => MetaCommand::Unknown,
             };
-        let len = match SMF::read_vtime(reader) {
+        let len = match SMFReader::read_vtime(reader) {
             Ok(t) => { t }
             Err(_) => { return Err(MetaError::OtherErr("Couldn't read time for meta command")); }
         };
