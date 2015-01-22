@@ -1,3 +1,7 @@
+#![allow(unstable)]
+
+use std::cmp::Ordering;
+
 use std::error;
 use std::io::{File,IoError,IoErrorKind,Reader};
 
@@ -15,10 +19,16 @@ pub use meta:: {
     MetaEvent,
 };
 
+pub use builder:: {
+    SMFBuilder,
+    TrackBuilder,
+};
+
 use reader:: {
     SMFReader,
 };
 
+mod builder;
 mod midi;
 mod meta;
 mod reader;
@@ -41,7 +51,6 @@ impl fmt::String for SMFFormat {
     }
 }
 
-
 pub enum Event {
     Midi(MidiMessage),
     Meta(MetaEvent),
@@ -60,6 +69,49 @@ pub struct TrackEvent {
     pub vtime: u64,
     pub event: Event,
 }
+
+impl Eq for TrackEvent {}
+
+impl PartialEq for TrackEvent {
+    fn eq(&self, other: &TrackEvent) -> bool {
+        self.vtime == other.vtime
+    }
+
+    fn ne(&self, other: &TrackEvent) -> bool {
+        self.vtime != other.vtime
+    }
+}
+
+// Implement `Ord` and sort messages by vtime
+impl Ord for TrackEvent {
+    fn cmp(&self, other: &TrackEvent) -> Ordering {
+        let res = self.vtime.cmp(&other.vtime);
+        match res {
+            // vtime takes priority
+            Ordering::Less | Ordering::Greater => res,
+            // if vtime is the same, check types and make meta events
+            // sort before standard events
+            Ordering::Equal => {
+                match (&self.event,&other.event) {
+                    // I'm midi, other is meta, so I'm greater
+                    (&Event::Midi(_),&Event::Meta(_)) => Ordering::Greater,
+                    // I'm meta, other is midi, so I'm less
+                    (&Event::Meta(_),&Event::Midi(_)) => Ordering::Less,
+                    // same type, so just use above res as Equal
+                    _ => res
+                }
+            }
+        }
+    }
+}
+
+impl PartialOrd for TrackEvent {
+    fn partial_cmp(&self, other: &TrackEvent) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+
 
 impl fmt::String for TrackEvent {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -124,7 +176,7 @@ impl error::FromError<MetaError> for SMFError {
 }
 
 impl error::FromError<FromUtf8Error> for SMFError {
-    fn from_error(err: FromUtf8Error) -> SMFError {
+    fn from_error(_: FromUtf8Error) -> SMFError {
         SMFError::InvalidSMFFile("Invalid UTF8 data in file")
     }
 }

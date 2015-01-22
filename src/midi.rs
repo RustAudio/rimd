@@ -49,7 +49,7 @@ pub enum Status {
     ControlChange = 0xB0,
     ProgramChange = 0xC0,
     ChannelAftertouch = 0xD0,
-    PitchWheel = 0xE0,
+    PitchBend = 0xE0,
 
     // sysex
     SysExStart = 0xF0,
@@ -93,19 +93,6 @@ impl MidiMessage {
         status as u8 | channel
     }
 
-    /// Create a note on message
-    pub fn note_on(freq: u8, velocity: u8, channel: u8) -> MidiMessage {
-        MidiMessage {
-            data: vec![MidiMessage::make_status(Status::NoteOn,channel), freq, velocity],
-        }
-    }
-    // Create a note off message
-    pub fn note_off(freq: u8, velocity: u8, channel: u8) -> MidiMessage {
-        MidiMessage {
-            data: vec![MidiMessage::make_status(Status::NoteOff,channel), freq, velocity],
-        }
-    }
-
     pub fn from_bytes(bytes: Vec<u8>) -> MidiMessage{
         // TODO: Validate bytes
         MidiMessage {
@@ -125,7 +112,7 @@ impl MidiMessage {
                     Status::NoteOn |
                     Status::PolyphonicAftertouch |
                     Status::ControlChange |
-                    Status::PitchWheel |
+                    Status::PitchBend |
                     Status::SongPositionPointer => { 2 }
 
                     Status::SysExStart => { -2 }
@@ -169,6 +156,70 @@ impl MidiMessage {
         let stat = try!(reader.read_byte());
         MidiMessage::next_message_given_status(stat,reader)
     }
+
+
+    // Functions to build midi messages
+
+    /// Create a note on message
+    pub fn note_on(note: u8, velocity: u8, channel: u8) -> MidiMessage {
+        MidiMessage {
+            data: vec![MidiMessage::make_status(Status::NoteOn,channel), note, velocity],
+        }
+    }
+
+    /// Create a note off message
+    pub fn note_off(note: u8, velocity: u8, channel: u8) -> MidiMessage {
+        MidiMessage {
+            data: vec![MidiMessage::make_status(Status::NoteOff,channel), note, velocity],
+        }
+    }
+
+    /// Create a polyphonic aftertouch message
+    /// This message is most often sent by pressing down on the key after it "bottoms out".
+    pub fn polyphonic_aftertouch(note: u8, pressure: u8, channel: u8) -> MidiMessage {
+        MidiMessage {
+            data: vec![MidiMessage::make_status(Status::PolyphonicAftertouch,channel), note, pressure],
+        }
+    }
+
+    /// Create a control change message
+    /// This message is sent when a controller value changes. Controllers include devices such as
+    /// pedals and levers. Controller numbers 120-127 are reserved as "Channel Mode Messages".
+    pub fn control_change(controler: u8, data: u8, channel: u8) -> MidiMessage {
+        MidiMessage {
+            data: vec![MidiMessage::make_status(Status::ControlChange,channel), controler, data],
+        }
+    }
+
+    /// Create a program change message
+    /// This message sent when the patch number changes. `program` is the new program number.
+    pub fn program_change(program: u8, channel: u8) -> MidiMessage {
+        MidiMessage {
+            data: vec![MidiMessage::make_status(Status::ProgramChange,channel), program],
+        }
+    }
+
+    /// Create a channel aftertouch
+    /// This message is most often sent by pressing down on the key after it "bottoms out". This message
+    /// is different from polyphonic after-touch. Use this message to send the single greatest pressure
+    /// value (of all the current depressed keys). `pressure` is the pressure value.
+    pub fn channel_aftertouch(pressure: u8, channel: u8) -> MidiMessage {
+        MidiMessage {
+            data: vec![MidiMessage::make_status(Status::ChannelAftertouch,channel), pressure],
+        }
+    }
+
+    /// Create a pitch bench message
+    /// This message is sent to indicate a change in the pitch bender (wheel or lever, typically).
+    /// The pitch bender is measured by a fourteen bit value. Center (no pitch change) is 2000H.
+    /// Sensitivity is a function of the transmitter. `lsb` are the least significant 7 bits.
+    /// `msb` are the most significant 7 bits.
+    pub fn pitch_bend(lsb: u8, msb: u8, channel: u8) -> MidiMessage {
+        MidiMessage {
+            data: vec![MidiMessage::make_status(Status::PitchBend,channel), lsb, msb],
+        }
+    }
+
 }
 
 impl fmt::String for Status {
@@ -181,7 +232,7 @@ impl fmt::String for Status {
                    Status::ControlChange => "Control Change",
                    Status::ProgramChange => "Program Change",
                    Status::ChannelAftertouch => "Channel Aftertouch",
-                   Status::PitchWheel => "Pitch Wheel",
+                   Status::PitchBend => "Pitch Bend",
                    Status::SysExStart => "SysEx Start",
                    Status::MIDITimeCodeQtrFrame => "MIDI Time Code Qtr Frame",
                    Status::SongPositionPointer => "Song Position Pointer",

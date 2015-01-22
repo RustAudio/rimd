@@ -1,3 +1,4 @@
+#![allow(unstable)]
 extern crate rimd;
 
 use rimd::{SMF,SMFError};

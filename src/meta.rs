@@ -64,6 +64,8 @@ pub enum MetaCommand {
     Unknown,
 }
 
+impl Copy for MetaCommand{}
+
 pub struct MetaEvent {
     pub command: MetaCommand,
     pub length: u64,
@@ -146,4 +148,175 @@ impl MetaEvent {
             data: data
         })
     }
+
+
+    // util functions for event constructors
+    fn u16_to_vec(val: u16) -> Vec<u8> {
+        let mut res = Vec::with_capacity(2);
+        res.push((val >> 8) as u8);
+        res.push(val as u8);
+        res
+    }
+
+    fn u24_to_vec(val: u32) -> Vec<u8> {
+        assert!(val <= 2.pow(24));
+        let mut res = Vec::with_capacity(3);
+        res.push((val >> 16) as u8);
+        res.push((val >> 8) as u8);
+        res.push(val as u8);
+        res
+    }
+
+    // event constructors below
+    pub fn sequence_number(sequence_number: u16) -> MetaEvent {
+        MetaEvent {
+            command: MetaCommand::SequenceNumber,
+            length: 0x02,
+            data: MetaEvent::u16_to_vec(sequence_number),
+        }
+    }
+
+    pub fn text_event(text: String) -> MetaEvent {
+        MetaEvent {
+            command: MetaCommand::TextEvent,
+            length: text.len() as u64,
+            data: text.into_bytes(),
+        }
+    }
+
+    pub fn copyright_notice(copyright: String) -> MetaEvent {
+        MetaEvent {
+            command: MetaCommand::CopyrightNotice,
+            length: copyright.len() as u64,
+            data: copyright.into_bytes(),
+        }
+    }
+
+    pub fn sequence_or_track_name(name: String) -> MetaEvent {
+        MetaEvent {
+            command: MetaCommand::SequenceOrTrackName,
+            length: name.len() as u64,
+            data: name.into_bytes(),
+        }
+    }
+
+    pub fn instrument_name(name: String) -> MetaEvent {
+        MetaEvent {
+            command: MetaCommand::InstrumentName,
+            length: name.len() as u64,
+            data: name.into_bytes(),
+        }
+    }
+
+    pub fn lyric_text(text: String) -> MetaEvent {
+        MetaEvent {
+            command: MetaCommand::LyricText,
+            length: text.len() as u64,
+            data: text.into_bytes(),
+        }
+    }
+
+    pub fn marker_text(text: String) -> MetaEvent {
+        MetaEvent {
+            command: MetaCommand::MarkerText,
+            length: text.len() as u64,
+            data: text.into_bytes(),
+        }
+    }
+
+    pub fn cue_point(text: String) -> MetaEvent {
+        MetaEvent {
+            command: MetaCommand::CuePoint,
+            length: text.len() as u64,
+            data: text.into_bytes(),
+        }
+    }
+
+    pub fn midichannel_prefix_assignment(channel: u8) -> MetaEvent {
+        MetaEvent {
+            command: MetaCommand::MIDIChannelPrefixAssignment,
+            length: 1,
+            data: vec![channel],
+        }
+    }
+
+    pub fn midiport_prefix_assignment(port: u8) -> MetaEvent {
+        MetaEvent {
+            command: MetaCommand::MIDIPortPrefixAssignment,
+            length: 1,
+            data: vec![port],
+        }
+    }
+
+    pub fn end_of_track() -> MetaEvent {
+        MetaEvent {
+            command: MetaCommand::EndOfTrack,
+            length: 0,
+            data: vec![],
+        }
+    }
+
+    /// Create an event to set track tempo.  This is stored
+    /// as a 24-bit value.  This method will fail an assertion if
+    /// the supplied tempo is greater than 2^24.
+    pub fn tempo_setting(tempo: u32) -> MetaEvent {
+        MetaEvent {
+            command: MetaCommand::TempoSetting,
+            length: 3,
+            data: MetaEvent::u24_to_vec(tempo),
+        }
+    }
+
+    pub fn smpte_offset(hours: u8, minutes: u8, seconds: u8, frames: u8, fractional: u8) -> MetaEvent {
+        MetaEvent {
+            command: MetaCommand::SMPTEOffset,
+            length: 5,
+            data: vec![hours,minutes,seconds,frames,fractional],
+        }
+    }
+
+    /// Create a time signature event.
+    /// Time signature of the form:
+    /// `numerator`/2^`denominator`
+    ///  eg: 6/8 would be specified using `numerator`=6, `denominator`=3
+    ///
+    /// The parameter `clocks_per_tick` is the number of MIDI Clocks per metronome tick.
+
+    /// Normally, there are 24 MIDI Clocks per quarter note.
+    /// However, some software allows this to be set by the user.
+    /// The parameter `num_32nd_notes_per_24_clocks` defines this in terms of the
+    /// number of 1/32 notes which make up the usual 24 MIDI Clocks
+    /// (the 'standard' quarter note).  8 is standard
+    pub fn time_signature(numerator: u8, denominator: u8, clocks_per_tick: u8, num_32nd_notes_per_24_clocks: u8) -> MetaEvent {
+        MetaEvent {
+            command: MetaCommand::TimeSignature,
+            length: 4,
+            data: vec![numerator,denominator,clocks_per_tick,num_32nd_notes_per_24_clocks],
+        }
+    }
+
+    ///  Create a Key Signature event
+    ///  expressed as the number of sharps or flats, and a major/minor flag.
+
+    /// `sharps_flats` of 0 represents a key of C, negative numbers represent
+    /// 'flats', while positive numbers represent 'sharps'.
+    pub fn key_signature(sharps_flats: u8, major_minor: u8) -> MetaEvent {
+        MetaEvent {
+            command: MetaCommand::KeySignature,
+            length: 2,
+            data: vec![sharps_flats, major_minor],
+        }
+    }
+
+    /// This is the MIDI-file equivalent of the System Exclusive Message.
+    /// sequencer-specific directives can be incorporated into a
+    /// MIDI file using this event.
+    pub fn sequencer_specific_event(data: Vec<u8>) -> MetaEvent {
+        MetaEvent {
+            command: MetaCommand::SequencerSpecificEvent,
+            length: data.len() as u64,
+            data: data,
+        }
+    }
+
 }
