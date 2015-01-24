@@ -57,7 +57,7 @@ pub enum SMFFormat {
 
 impl Copy for SMFFormat {}
 
-impl fmt::String for SMFFormat {
+impl fmt::Display for SMFFormat {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}",match *self {
             SMFFormat::Single     => "single track",
@@ -73,7 +73,7 @@ pub enum Event {
     Meta(MetaEvent),
 }
 
-impl fmt::String for Event {
+impl fmt::Display for Event {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             Event::Midi(ref m) => { write!(f, "{}", m) }
@@ -92,7 +92,7 @@ pub struct TrackEvent {
 }
 
 
-impl fmt::String for TrackEvent {
+impl fmt::Display for TrackEvent {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "time: {}\t{}",self.vtime,self.event)
     }
@@ -108,7 +108,7 @@ pub struct Track {
     pub events: Vec<TrackEvent>
 }
 
-impl fmt::String for Track {
+impl fmt::Display for Track {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "Track, copyright: {}, name: {}",
                match self.copyright {
@@ -176,15 +176,6 @@ impl error::Error for SMFError {
         }
     }
 
-    fn detail(&self) -> Option<String> {
-        match *self {
-            SMFError::InvalidSMFFile(s) => Some(format!("SMF file is invalid: {}",s)),
-            SMFError::IoError(ref err)  => err.detail(),
-            SMFError::MidiError(ref m) => m.detail(),
-            SMFError::MetaError(ref m) => m.detail(),
-        }
-    }
-
     fn cause(&self) -> Option<&error::Error> {
         match *self {
             SMFError::MidiError(ref m) => Some(m as &error::Error),
@@ -192,6 +183,17 @@ impl error::Error for SMFError {
             SMFError::IoError(ref err) => Some(err as &error::Error),
             _ => None,
         }
+    }
+}
+
+impl fmt::Display for SMFError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+       match *self {
+           SMFError::InvalidSMFFile(s) => write!(f,"SMF file is invalid: {}",s),
+           SMFError::MidiError(ref err) => { write!(f,"{}",err) },
+           SMFError::MetaError(ref err) => { write!(f,"{}",err) },
+           SMFError::IoError(ref err) => { write!(f,"{}",err) },
+       }
     }
 }
 

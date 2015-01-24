@@ -28,18 +28,20 @@ impl error::Error for MetaError {
         }
     }
 
-    fn detail(&self) -> Option<String> {
-        match *self {
-            MetaError::InvalidCommand(ref c) => Some(format!("Invalid Meta command: {}",c)),
-            MetaError::OtherErr(ref s) => Some(format!("Meta Error: {}",s)),
-            MetaError::IoError(ref e) => e.detail(),
-        }
-    }
-
     fn cause(&self) -> Option<&error::Error> {
         match *self {
             MetaError::IoError(ref err) => Some(err as &error::Error),
             _ => None,
+        }
+    }
+}
+
+impl fmt::Display for MetaError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            MetaError::InvalidCommand(ref c) => write!(f,"Invalid Meta command: {}",c),
+            MetaError::OtherErr(ref s) => write!(f,"Meta Error: {}",s),
+            MetaError::IoError(ref e) => write!(f,"{}",e),
         }
     }
 }
@@ -77,7 +79,7 @@ pub struct MetaEvent {
     pub data: Vec<u8>,
 }
 
-impl fmt::String for MetaEvent {
+impl fmt::Display for MetaEvent {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "Meta Event: {}",
                match self.command {

@@ -25,18 +25,20 @@ impl error::Error for MidiError {
         }
     }
 
-    fn detail(&self) -> Option<String> {
-        match *self {
-            MidiError::InvalidStatus(ref s) => Some(format!("Invalid Midi status: {}",s)),
-            MidiError::OtherErr(ref s) => Some(format!("Midi Error: {}",s)),
-            MidiError::IoError(ref e) => e.detail(),
-        }
-    }
-
     fn cause(&self) -> Option<&error::Error> {
         match *self {
             MidiError::IoError(ref err) => Some(err as &error::Error),
             _ => None,
+        }
+    }
+}
+
+impl fmt::Display for MidiError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            MidiError::InvalidStatus(ref s) => write!(f,"Invalid Midi status: {}",s),
+            MidiError::OtherErr(ref s) => write!(f,"Midi Error: {}",s),
+            MidiError::IoError(ref e) => write!(f,"{}",e),
         }
     }
 }
@@ -234,7 +236,7 @@ impl MidiMessage {
 
 }
 
-impl fmt::String for Status {
+impl fmt::Display for Status {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}",
                match *self {
@@ -261,7 +263,7 @@ impl fmt::String for Status {
     }
 }
 
-impl fmt::String for MidiMessage {
+impl fmt::Display for MidiMessage {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if self.data.len() == 2 {
             write!(f, "{}: [{}]\tchannel: {}", self.status(),self.data[1],self.channel())
