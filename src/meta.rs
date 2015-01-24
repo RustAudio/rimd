@@ -6,6 +6,7 @@ use std::string::FromUtf8Error;
 
 use reader::SMFReader;
 
+/// An error that can occur parsing a meta command
 pub enum MetaError {
     InvalidCommand(u8),
     OtherErr(&'static str),
@@ -43,6 +44,7 @@ impl error::Error for MetaError {
     }
 }
 
+/// Commands that meta messages can represent
 #[derive(FromPrimitive)]
 pub enum MetaCommand {
     SequenceNumber = 0x00,
@@ -66,6 +68,9 @@ pub enum MetaCommand {
 
 impl Copy for MetaCommand{}
 
+/// Meta event building and parsing.  See
+/// http://cs.fit.edu/~ryan/cse4051/projects/midi/midi.html#meta_event
+/// for a description of the various meta events and their formats
 pub struct MetaEvent {
     pub command: MetaCommand,
     pub length: u64,
@@ -118,6 +123,7 @@ impl fmt::String for MetaEvent {
 
 impl MetaEvent {
 
+    /// Turn `bytes` bytes of the data of this event into a u64
     pub fn data_as_u64(&self,bytes: usize) -> u64 {
         let mut res = 0;
         for i in (0..bytes) {
@@ -127,10 +133,12 @@ impl MetaEvent {
         res
     }
 
+    /// Parse the data of this event into a utf8 string
     pub fn data_as_text(&self) -> Result<String,FromUtf8Error> {
         String::from_utf8(self.data.clone())
     }
 
+    /// Extract the next meta event from a reader
     pub fn next_event(reader: &mut Reader) -> Result<MetaEvent, MetaError> {
         let command =
             match FromPrimitive::from_u8(try!(reader.read_byte())) {
@@ -168,6 +176,8 @@ impl MetaEvent {
     }
 
     // event constructors below
+
+    /// Create a sequence number meta event
     pub fn sequence_number(sequence_number: u16) -> MetaEvent {
         MetaEvent {
             command: MetaCommand::SequenceNumber,
@@ -176,6 +186,7 @@ impl MetaEvent {
         }
     }
 
+    /// Create a text meta event
     pub fn text_event(text: String) -> MetaEvent {
         MetaEvent {
             command: MetaCommand::TextEvent,
@@ -184,6 +195,7 @@ impl MetaEvent {
         }
     }
 
+    /// Create a copyright notice meta event
     pub fn copyright_notice(copyright: String) -> MetaEvent {
         MetaEvent {
             command: MetaCommand::CopyrightNotice,
@@ -192,6 +204,7 @@ impl MetaEvent {
         }
     }
 
+    /// Create a name meta event
     pub fn sequence_or_track_name(name: String) -> MetaEvent {
         MetaEvent {
             command: MetaCommand::SequenceOrTrackName,
@@ -200,6 +213,7 @@ impl MetaEvent {
         }
     }
 
+    /// Create an instrument name meta event
     pub fn instrument_name(name: String) -> MetaEvent {
         MetaEvent {
             command: MetaCommand::InstrumentName,
@@ -208,6 +222,7 @@ impl MetaEvent {
         }
     }
 
+    /// Create a lyric text meta event
     pub fn lyric_text(text: String) -> MetaEvent {
         MetaEvent {
             command: MetaCommand::LyricText,
@@ -216,6 +231,8 @@ impl MetaEvent {
         }
     }
 
+
+    /// Create a marker text meta event
     pub fn marker_text(text: String) -> MetaEvent {
         MetaEvent {
             command: MetaCommand::MarkerText,
@@ -224,6 +241,7 @@ impl MetaEvent {
         }
     }
 
+    /// Create a cue point meta event
     pub fn cue_point(text: String) -> MetaEvent {
         MetaEvent {
             command: MetaCommand::CuePoint,
@@ -232,6 +250,7 @@ impl MetaEvent {
         }
     }
 
+    /// Create a midi channel prefix assignment meta event
     pub fn midichannel_prefix_assignment(channel: u8) -> MetaEvent {
         MetaEvent {
             command: MetaCommand::MIDIChannelPrefixAssignment,
@@ -240,6 +259,7 @@ impl MetaEvent {
         }
     }
 
+    /// Create a midi port prefix assignment meta event
     pub fn midiport_prefix_assignment(port: u8) -> MetaEvent {
         MetaEvent {
             command: MetaCommand::MIDIPortPrefixAssignment,
@@ -248,6 +268,7 @@ impl MetaEvent {
         }
     }
 
+    /// Create an end of track meta event
     pub fn end_of_track() -> MetaEvent {
         MetaEvent {
             command: MetaCommand::EndOfTrack,
@@ -267,6 +288,7 @@ impl MetaEvent {
         }
     }
 
+    /// Create an smpte offset meta event
     pub fn smpte_offset(hours: u8, minutes: u8, seconds: u8, frames: u8, fractional: u8) -> MetaEvent {
         MetaEvent {
             command: MetaCommand::SMPTEOffset,

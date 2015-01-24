@@ -3,6 +3,7 @@ use std::io::{IoError,Reader};
 use std::num::FromPrimitive;
 use std::fmt;
 
+/// An error that can occur trying to parse a midi message
 pub enum MidiError {
     InvalidStatus(u8),
     OtherErr(&'static str),
@@ -40,6 +41,8 @@ impl error::Error for MidiError {
     }
 }
 
+/// The status field of a midi message indicates what midi command it
+/// represents and what channel it is on
 #[derive(FromPrimitive)]
 pub enum Status {
     // voice
@@ -66,6 +69,10 @@ pub enum Status {
     SystemReset = 0xFF,
 }
 
+
+/// Midi message building and parsing.  See
+/// http://www.midi.org/techspecs/midimessages.php for a description
+/// of the various Midi messages that exist.
 pub struct MidiMessage {
     data: Vec<u8>,
 }
@@ -84,6 +91,8 @@ impl MidiMessage {
         (self.data[0] & CHANNEL_MASK) + 1
     }
 
+    /// Get te data at index `index` from this message.  Status is at
+    /// index 0
     pub fn data(&self, index: usize) -> u8 {
         self.data[index]
     }
@@ -93,6 +102,7 @@ impl MidiMessage {
         status as u8 | channel
     }
 
+    /// Create a midi message from a vector of bytes
     pub fn from_bytes(bytes: Vec<u8>) -> MidiMessage{
         // TODO: Validate bytes
         MidiMessage {
@@ -104,7 +114,7 @@ impl MidiMessage {
     // -1 -> variable sized message, call get_variable_size
     // -2 -> sysex, read until SysExEnd
     // -3 -> invalid status
-    pub fn data_bytes(status: u8) -> isize {
+    fn data_bytes(status: u8) -> isize {
         match FromPrimitive::from_u8(status & STATUS_MASK) {
             Some(stat) => {
                 match stat {
@@ -136,6 +146,8 @@ impl MidiMessage {
         }
     }
 
+    /// Get the next midi message from the reader given that the
+    /// status `stat` has just been read
     pub fn next_message_given_status(stat: u8, reader: &mut Reader) -> Result<MidiMessage, MidiError> {
         let mut ret:Vec<u8> = Vec::with_capacity(3);
         ret.push(stat);
@@ -151,7 +163,7 @@ impl MidiMessage {
         Ok(MidiMessage{data: ret})
     }
 
-    // Extract next midi message from a reader
+    /// Extract next midi message from a reader
     pub fn next_message(reader: &mut Reader) -> Result<MidiMessage,MidiError> {
         let stat = try!(reader.read_byte());
         MidiMessage::next_message_given_status(stat,reader)

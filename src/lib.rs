@@ -1,6 +1,19 @@
-#![allow(unstable)]
+//! rimd is a set of utilities to deal with midi messages and standard
+//! midi files (SMF).  It handles both standard midi messages and the meta
+//! messages that are found in SMFs.
+//!
+//! rimd is fairly low level, and  messages are stored and accessed in
+//! their underlying format (i.e. a vector of u8s).  There are some
+//! utility methods for accessing the various pieces of a message, and
+//! for constructing new messages.
+//!
+//! For a description of the underlying format of midi messages see:<br/>
+//! http://www.midi.org/techspecs/midimessages.php<br/>
+//! For a description of the underlying format of meta messages see:<br/>
+//! http://cs.fit.edu/~ryan/cse4051/projects/midi/midi.html#meta_event
 
-use std::cmp::Ordering;
+
+#![allow(unstable)]
 
 use std::error;
 use std::io::{File,IoError,IoErrorKind,Reader};
@@ -21,7 +34,6 @@ pub use meta:: {
 
 pub use builder:: {
     SMFBuilder,
-    TrackBuilder,
 };
 
 use reader:: {
@@ -33,9 +45,13 @@ mod midi;
 mod meta;
 mod reader;
 
+/// Format of the SMF
 pub enum SMFFormat {
+    /// single track file format
     Single,
+    /// multiple track file format
     MultiTrack,
+    /// multiple song file format (i.e., a series of single type files)
     MultiSong,
 }
 
@@ -51,6 +67,7 @@ impl fmt::String for SMFFormat {
     }
 }
 
+/// An event can be either a midi message or a meta event
 pub enum Event {
     Midi(MidiMessage),
     Meta(MetaEvent),
@@ -65,52 +82,14 @@ impl fmt::String for Event {
     }
 }
 
+/// An event occuring in the track.
 pub struct TrackEvent {
+    /// A delta offset, indicating how many ticks after the previous
+    /// event this event occurs
     pub vtime: u64,
+    /// The actual event
     pub event: Event,
 }
-
-impl Eq for TrackEvent {}
-
-impl PartialEq for TrackEvent {
-    fn eq(&self, other: &TrackEvent) -> bool {
-        self.vtime == other.vtime
-    }
-
-    fn ne(&self, other: &TrackEvent) -> bool {
-        self.vtime != other.vtime
-    }
-}
-
-// Implement `Ord` and sort messages by vtime
-impl Ord for TrackEvent {
-    fn cmp(&self, other: &TrackEvent) -> Ordering {
-        let res = self.vtime.cmp(&other.vtime);
-        match res {
-            // vtime takes priority
-            Ordering::Less | Ordering::Greater => res,
-            // if vtime is the same, check types and make meta events
-            // sort before standard events
-            Ordering::Equal => {
-                match (&self.event,&other.event) {
-                    // I'm midi, other is meta, so I'm greater
-                    (&Event::Midi(_),&Event::Meta(_)) => Ordering::Greater,
-                    // I'm meta, other is midi, so I'm less
-                    (&Event::Meta(_),&Event::Midi(_)) => Ordering::Less,
-                    // same type, so just use above res as Equal
-                    _ => res
-                }
-            }
-        }
-    }
-}
-
-impl PartialOrd for TrackEvent {
-    fn partial_cmp(&self, other: &TrackEvent) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
 
 
 impl fmt::String for TrackEvent {
@@ -119,9 +98,13 @@ impl fmt::String for TrackEvent {
     }
 }
 
+/// A sequence of midi/meta events
 pub struct Track {
+    /// Optional copyright notice
     pub copyright: Option<String>,
+    /// Optional name for this track
     pub name: Option<String>,
+    /// Vector of the events in this track
     pub events: Vec<TrackEvent>
 }
 
@@ -139,6 +122,8 @@ impl fmt::String for Track {
     }
 }
 
+
+/// An error that occured in parsing an SMF
 pub enum SMFError {
     InvalidSMFFile(&'static str),
     MidiError(MidiError),
@@ -210,10 +195,17 @@ impl error::Error for SMFError {
     }
 }
 
+/// A standard midi file
 pub struct SMF {
+    /// The format of the SMF
     pub format: SMFFormat,
+    /// Vector holding each track in this SMF
     pub tracks: Vec<Track>,
-    pub division: u16,
+    /// The unit of time for delta timing. If the value is positive,
+    /// then it represents the units per beat. For example, +96 would
+    /// mean 96 ticks per beat. If the value is negative, delta times
+    /// are in SMPTE compatible units.
+    pub division: i16,
 }
 
 
@@ -230,7 +222,3 @@ impl SMF {
     }
 }
 
-
-#[test]
-fn it_works() {
-}

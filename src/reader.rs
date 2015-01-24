@@ -4,6 +4,7 @@ use std::io::util::IterReader;
 use SMF;
 use ::{Event,SMFError,SMFFormat,MetaCommand,MetaEvent,MidiMessage,Track,TrackEvent};
 
+/// An SMFReader can parse a byte stream into an SMF
 pub struct SMFReader;
 impl Copy for SMFReader {}
 
@@ -26,7 +27,7 @@ impl SMFReader {
         };
 
         let tracks = (header[10] as u16) << 8 | header[11] as u16;
-        let division = (header[12] as u16) << 8 | header[13] as u16;
+        let division = (header[12] as i16) << 8 | header[13] as i16;
 
         Ok(SMF { format: format,
                  tracks: Vec::with_capacity(tracks as usize),
