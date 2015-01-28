@@ -1,5 +1,5 @@
 use std::error;
-use std::io::{IoError,Reader};
+use std::old_io::{IoError,Reader};
 use std::fmt;
 use std::num::{FromPrimitive,Int};
 use std::string::FromUtf8Error;

@@ -16,7 +16,7 @@
 #![allow(unstable)]
 
 use std::error;
-use std::io::{File,IoError,IoErrorKind,Reader};
+use std::old_io::{File,IoError,IoErrorKind,Reader};
 
 use std::fmt;
 use std::string::FromUtf8Error;

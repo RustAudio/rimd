@@ -1,5 +1,5 @@
-use std::io::Reader;
-use std::io::util::IterReader;
+use std::old_io::Reader;
+use std::old_io::util::IterReader;
 
 use SMF;
 use ::{Event,SMFError,SMFFormat,MetaCommand,MetaEvent,MidiMessage,Track,TrackEvent};
