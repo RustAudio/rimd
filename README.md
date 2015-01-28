@@ -5,7 +5,7 @@ midi files (SMF).  It handles both standard midi messages and the meta
 messages that are found in SMFs.
 
 rimd is fairly low level, and  messages are stored and accessed in
-their underlying format (i.e. a vector of u8s).  There are some
+their underlying format (i.e. a vector of `u8`s).  There are some
 utility methods for accessing the various pieces of a message, and
 for constructing new messages.
 
