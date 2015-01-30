@@ -40,10 +40,15 @@ use reader:: {
     SMFReader,
 };
 
+pub use util:: {
+    note_num_to_name,
+};
+
 mod builder;
 mod midi;
 mod meta;
 mod reader;
+mod util;
 
 /// Format of the SMF
 pub enum SMFFormat {
