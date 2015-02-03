@@ -25,6 +25,10 @@ impl AbsoluteEvent {
             event: Event::Meta(meta),
         }
     }
+
+    pub fn get_time(&self) -> u64 {
+        self.time
+    }
 }
 
 impl Eq for AbsoluteEvent {}
@@ -81,7 +85,7 @@ impl TrackBuilder {
         Track {
             copyright: self.copyright,
             name: self.name,
-            events: self.events.into_iter().map(|bev| {
+            events: self.events.into_sorted_vec().into_iter().map(|bev| {
                 let vtime = bev.time - cur_time;
                 cur_time = vtime;
                 TrackEvent {
