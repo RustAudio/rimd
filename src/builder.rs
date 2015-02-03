@@ -4,27 +4,44 @@ use std::collections::BinaryHeap;
 
 use ::{SMF,Event,SMFFormat,MetaEvent,MidiMessage,Track,TrackEvent};
 
-// Internal type to store events while they are being built
-struct BuildEvent {
+/// An AbsoluteEvent is an event that has an absolute time
+/// This is useful for apps that want to store events internally
+/// with absolute times and then quickly build an SMF file for saving etc...
+pub struct AbsoluteEvent {
     time: u64,
     event: Event,
 }
 
-impl Eq for BuildEvent {}
+impl AbsoluteEvent {
+    pub fn new_midi(time: u64, midi: MidiMessage) -> AbsoluteEvent {
+        AbsoluteEvent {
+            time: time,
+            event: Event::Midi(midi),
+        }
+    }
+    pub fn new_meta(time: u64, meta: MetaEvent) -> AbsoluteEvent {
+        AbsoluteEvent {
+            time: time,
+            event: Event::Meta(meta),
+        }
+    }
+}
 
-impl PartialEq for BuildEvent {
-    fn eq(&self, other: &BuildEvent) -> bool {
+impl Eq for AbsoluteEvent {}
+
+impl PartialEq for AbsoluteEvent {
+    fn eq(&self, other: &AbsoluteEvent) -> bool {
         self.time == other.time
     }
 
-    fn ne(&self, other: &BuildEvent) -> bool {
+    fn ne(&self, other: &AbsoluteEvent) -> bool {
         self.time != other.time
     }
 }
 
 // Implement `Ord` and sort messages by time
-impl Ord for BuildEvent {
-    fn cmp(&self, other: &BuildEvent) -> Ordering {
+impl Ord for AbsoluteEvent {
+    fn cmp(&self, other: &AbsoluteEvent) -> Ordering {
         let res = self.time.cmp(&other.time);
         match res {
             // vtime takes priority
@@ -45,8 +62,8 @@ impl Ord for BuildEvent {
     }
 }
 
-impl PartialOrd for BuildEvent {
-    fn partial_cmp(&self, other: &BuildEvent) -> Option<Ordering> {
+impl PartialOrd for AbsoluteEvent {
+    fn partial_cmp(&self, other: &AbsoluteEvent) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
@@ -54,7 +71,7 @@ impl PartialOrd for BuildEvent {
 struct TrackBuilder {
     copyright: Option<String>,
     name: Option<String>,
-    events: BinaryHeap<BuildEvent>,
+    events: BinaryHeap<AbsoluteEvent>,
 }
 
 impl TrackBuilder {
@@ -121,7 +138,7 @@ impl SMFBuilder {
     pub fn set_copyright(&mut self, track: usize, copyright: String) {
         assert!(self.tracks.len() < track);
         assert!(self.tracks[track].copyright.is_none());
-        let event = BuildEvent {
+        let event = AbsoluteEvent {
             time: 0,
             event: Event::Meta(MetaEvent::copyright_notice(copyright.clone())),
         };
@@ -139,7 +156,7 @@ impl SMFBuilder {
     pub fn set_name(&mut self, track: usize, name: String) {
         assert!(self.tracks.len() < track);
         assert!(self.tracks[track].name.is_none());
-        let event = BuildEvent{
+        let event = AbsoluteEvent{
             time: 0,
             event: Event::Meta(MetaEvent::sequence_or_track_name(name.clone())),
         };
@@ -155,7 +172,7 @@ impl SMFBuilder {
     /// Panics if `track` is >= to the number of tracks in this builder
     pub fn add_midi_abs(&mut self, track: usize, time: u64, msg: MidiMessage) {
         assert!(self.tracks.len() < track);
-        self.tracks[track].events.push(BuildEvent {
+        self.tracks[track].events.push(AbsoluteEvent {
             time: time,
             event: Event::Midi(msg),
         });
@@ -171,7 +188,7 @@ impl SMFBuilder {
     pub fn add_midi_rel(&mut self, track: usize, delta: u64, msg: MidiMessage) {
         assert!(self.tracks.len() < track);
         let time = self.tracks[track].abs_time_from_delta(delta);
-        self.tracks[track].events.push(BuildEvent {
+        self.tracks[track].events.push(AbsoluteEvent {
             time: time,
             event: Event::Midi(msg),
         });
@@ -185,7 +202,7 @@ impl SMFBuilder {
     /// Panics if `track` is >= to the number of tracks in this builder
     pub fn add_meta_abs(&mut self, track: usize, time: u64, event: MetaEvent) {
         assert!(self.tracks.len() < track);
-        self.tracks[track].events.push(BuildEvent {
+        self.tracks[track].events.push(AbsoluteEvent {
             time: time,
             event: Event::Meta(event),
         });
@@ -201,7 +218,7 @@ impl SMFBuilder {
     pub fn add_meta_rel(&mut self, track: usize, delta: u64, event: MetaEvent) {
         assert!(self.tracks.len() < track);
         let time = self.tracks[track].abs_time_from_delta(delta);
-        self.tracks[track].events.push(BuildEvent {
+        self.tracks[track].events.push(AbsoluteEvent {
             time: time,
             event: Event::Meta(event),
         });
@@ -216,7 +233,7 @@ impl SMFBuilder {
     /// Panics if `track` is >= to the number of tracks in this builder
     pub fn add_event(&mut self, track: usize, event: TrackEvent) {
         assert!(self.tracks.len() < track);
-        let bevent = BuildEvent {
+        let bevent = AbsoluteEvent {
             time: self.tracks[track].abs_time_from_delta(event.vtime),
             event: event.event,
         };

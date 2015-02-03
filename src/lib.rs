@@ -34,6 +34,7 @@ pub use meta:: {
 
 pub use builder:: {
     SMFBuilder,
+    AbsoluteEvent,
 };
 
 use reader:: {
