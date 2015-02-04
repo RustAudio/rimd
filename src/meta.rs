@@ -47,7 +47,7 @@ impl fmt::Display for MetaError {
 }
 
 /// Commands that meta messages can represent
-#[derive(FromPrimitive)]
+#[derive(FromPrimitive,PartialEq,Eq,PartialOrd,Ord)]
 pub enum MetaCommand {
     SequenceNumber = 0x00,
     TextEvent = 0x01,

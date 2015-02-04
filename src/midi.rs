@@ -45,7 +45,7 @@ impl fmt::Display for MidiError {
 
 /// The status field of a midi message indicates what midi command it
 /// represents and what channel it is on
-#[derive(FromPrimitive)]
+#[derive(FromPrimitive,PartialEq)]
 pub enum Status {
     // voice
     NoteOff = 0x80,

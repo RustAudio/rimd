@@ -57,11 +57,26 @@ impl Eq for AbsoluteEvent {}
 
 impl PartialEq for AbsoluteEvent {
     fn eq(&self, other: &AbsoluteEvent) -> bool {
-        self.time == other.time
+        if self.time == other.time {
+            match (&self.event,&other.event) {
+                (&Event::Midi(_),&Event::Meta(_)) => false,
+                (&Event::Meta(_),&Event::Midi(_)) => false,
+                (&Event::Meta(ref me),&Event::Meta(ref you)) => {
+                    me.command == you.command
+                },
+                (&Event::Midi(ref me),&Event::Midi(ref you)) => {
+                    me.data(0) == you.data(0)
+                        &&
+                    me.data(1) == me.data(1)
+                },
+            }
+        } else {
+            false
+        }
     }
 
     fn ne(&self, other: &AbsoluteEvent) -> bool {
-        self.time != other.time
+        !(self.eq(other))
     }
 }
 
@@ -80,8 +95,22 @@ impl Ord for AbsoluteEvent {
                     (&Event::Midi(_),&Event::Meta(_)) => Ordering::Greater,
                     // I'm meta, other is midi, so I'm less
                     (&Event::Meta(_),&Event::Midi(_)) => Ordering::Less,
-                    // same type, so just use above res as Equal
-                    _ => res
+                    (&Event::Meta(ref me),&Event::Meta(ref you)) => {
+                        me.command.cmp(&you.command)
+                    },
+                    (&Event::Midi(ref me),&Event::Midi(ref you)) => {
+                        if      me.data(0) < you.data(0) { Ordering::Less }
+                        else if me.data(0) > you.data(0) { Ordering::Greater }
+                        else {
+                            if me.data(1) < you.data(1) {
+                                Ordering::Less
+                            } else if me.data(1) > you.data(1) {
+                                Ordering::Greater
+                            } else {
+                                res
+                            }
+                        }
+                    },
                 }
             }
         }
