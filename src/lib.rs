@@ -22,6 +22,7 @@ use std::fmt;
 use std::string::FromUtf8Error;
 
 pub use midi:: {
+    Status,
     MidiError,
     MidiMessage,
 };

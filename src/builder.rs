@@ -26,6 +26,28 @@ impl AbsoluteEvent {
         }
     }
 
+    /// Return true if the event inside this AbsoluteEvent is a midi
+    /// event, false if it's a meta event
+    pub fn is_midi(&self) -> bool {
+        match self.event {
+            Event::Midi(_) => true,
+            Event::Meta(_) => false,
+        }
+    }
+
+    /// Return true if the event inside this AbsoluteEvent is a meta
+    /// event, false if it's a midi event
+    pub fn is_meta(&self) -> bool {
+        match self.event {
+            Event::Midi(_) => false,
+            Event::Meta(_) => true,
+        }
+    }
+
+    pub fn get_event(&self) -> &Event {
+        &self.event
+    }
+
     pub fn get_time(&self) -> u64 {
         self.time
     }
