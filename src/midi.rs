@@ -76,7 +76,7 @@ pub enum Status {
 /// http://www.midi.org/techspecs/midimessages.php for a description
 /// of the various Midi messages that exist.
 pub struct MidiMessage {
-    data: Vec<u8>,
+    pub data: Vec<u8>,
 }
 
 static STATUS_MASK: u8 = 0xF0;
