@@ -45,7 +45,7 @@ impl fmt::Display for MidiError {
 
 /// The status field of a midi message indicates what midi command it
 /// represents and what channel it is on
-#[derive(FromPrimitive,PartialEq)]
+#[derive(FromPrimitive,PartialEq,Copy)]
 pub enum Status {
     // voice
     NoteOff = 0x80,
@@ -71,12 +71,19 @@ pub enum Status {
     SystemReset = 0xFF,
 }
 
-
 /// Midi message building and parsing.  See
 /// http://www.midi.org/techspecs/midimessages.php for a description
 /// of the various Midi messages that exist.
 pub struct MidiMessage {
     pub data: Vec<u8>,
+}
+
+impl Clone for MidiMessage {
+    fn clone(&self) -> MidiMessage {
+        MidiMessage {
+            data: self.data.clone()
+        }
+    }
 }
 
 static STATUS_MASK: u8 = 0xF0;

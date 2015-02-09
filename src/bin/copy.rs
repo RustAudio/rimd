@@ -1,8 +1,7 @@
-#![feature(core,env,os,path)]
-
+#![feature(env,os,path)]
 extern crate rimd;
 
-use rimd::{SMF,SMFError};
+use rimd::{SMF,SMFError,SMFWriter};
 use std::env::{args,Args};
 
 fn main() {
@@ -12,22 +11,14 @@ fn main() {
         Ok(s) => s,
         Err(_) => { panic!("Invalid path") },
     };
-    println!("Reading: {}",pathstr);
+    let deststr = match args.next().unwrap().into_string().clone() {
+        Ok(s) => s,
+        Err(_) => { panic!("Invalid destination") },
+    };
     match SMF::from_file(&Path::new(pathstr)) {
         Ok(smf) => {
-            println!("format: {}",smf.format);
-            println!("tracks: {}",smf.tracks.len());
-            println!("division: {}",smf.division);
-            let mut tnum = 1;
-            for track in smf.tracks.iter() {
-                let mut time: u64 = 0;
-                println!("\n{}: {}\nevents:",tnum,track);
-                tnum+=1;
-                for event in track.events.iter() {
-                    println!("  {}",event.fmt_with_time_offset(time));
-                    time += event.vtime;
-                }
-            }
+            let writer = SMFWriter::from_smf(smf);
+            writer.write_to_file(&Path::new(deststr)).unwrap();
         }
         Err(e) => {
             match e {

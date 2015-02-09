@@ -5,8 +5,8 @@ use SMF;
 use ::{Event,SMFError,SMFFormat,MetaCommand,MetaEvent,MidiMessage,Track,TrackEvent};
 
 /// An SMFReader can parse a byte stream into an SMF
+#[derive(Copy)]
 pub struct SMFReader;
-impl Copy for SMFReader {}
 
 impl SMFReader {
     fn parse_header(reader: &mut Reader) -> Result<SMF,SMFError> {
@@ -34,22 +34,21 @@ impl SMFReader {
                  division: division } )
     }
 
-    fn next_event(reader: &mut Reader, cur_time: &mut u64) -> Result<TrackEvent,SMFError> {
+    fn next_event(reader: &mut Reader) -> Result<TrackEvent,SMFError> {
         let time = try!(SMFReader::read_vtime(reader));
-        *cur_time += time;
         let stat = try!(reader.read_byte());
         match stat {
             0xFF => {
                 let event = try!(MetaEvent::next_event(reader));
                 Ok( TrackEvent {
-                    vtime: *cur_time,
+                    vtime: time,
                     event: Event::Meta(event),
                 })
             }
             _ => {
                 let msg = try!(MidiMessage::next_message_given_status(stat,reader));
                 Ok( TrackEvent {
-                    vtime: *cur_time,
+                    vtime: time,
                     event: Event::Midi(msg),
                 })
             }
@@ -77,9 +76,8 @@ impl SMFReader {
             (buf[2] as u32) << 8 |
             (buf[3] as u32)) as usize;
         let mut data = IterReader::new(try!(reader.read_exact(len)).into_iter());
-        let mut time: u64 = 0;
         loop {
-            match SMFReader::next_event(&mut data,&mut time) {
+            match SMFReader::next_event(&mut data) {
                 Ok(event) => {
                     match event.event {
                         Event::Meta(ref me) => {

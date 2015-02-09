@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 use std::collections::BinaryHeap;
-
+use std::ops::IndexMut;
 
 use ::{SMF,Event,SMFFormat,MetaEvent,MidiMessage,Track,TrackEvent};
 
@@ -123,34 +123,49 @@ impl PartialOrd for AbsoluteEvent {
     }
 }
 
+enum EventContainer {
+    Heap(BinaryHeap<AbsoluteEvent>),
+    Static(Vec<TrackEvent>),
+}
+
 struct TrackBuilder {
     copyright: Option<String>,
     name: Option<String>,
-    events: BinaryHeap<AbsoluteEvent>,
+    events: EventContainer,
 }
 
 impl TrackBuilder {
 
     fn result(self) -> Track {
-        let mut cur_time: u64 = 0;
         Track {
             copyright: self.copyright,
             name: self.name,
-            events: self.events.into_sorted_vec().into_iter().map(|bev| {
-                let vtime = bev.time - cur_time;
-                cur_time = vtime;
-                TrackEvent {
-                    vtime: vtime,
-                    event: bev.event,
-                }
-            }).collect(),
+            events: match self.events {
+                EventContainer::Heap(heap) => {
+                    let mut cur_time: u64 = 0;
+                    heap.into_sorted_vec().into_iter().map(|bev| {
+                        let vtime = bev.time - cur_time;
+                        cur_time = vtime;
+                        TrackEvent {
+                            vtime: vtime,
+                            event: bev.event,
+                        }
+                    }).collect()
+                },
+                EventContainer::Static(vec) => vec,
+            },
         }
     }
 
     fn abs_time_from_delta(&self,delta: u64) -> u64 {
-        match self.events.peek() {
-            Some(e) => { e.time + delta }
-            None => { delta }
+        match self.events {
+            EventContainer::Heap(ref heap) => {
+                match heap.peek() {
+                    Some(e) => { e.time + delta }
+                    None => { delta }
+                }
+            }
+            _ => { panic!("Can't call abs_time_from_delta on non-heap builder") }
         }
     }
 }
@@ -180,7 +195,26 @@ impl SMFBuilder {
         self.tracks.push(TrackBuilder {
             copyright: None,
             name: None,
-            events: BinaryHeap::new()
+            events: EventContainer::Heap(BinaryHeap::new()),
+        });
+    }
+
+    /// Add a static track to the builder (note this will clone all events in the passed iterator)
+    pub fn add_static_track<'a,I>(&mut self, track: I) where I: Iterator<Item=&'a AbsoluteEvent> {
+        let mut cur_time: u64 = 0;
+        let vec = track.map(|bev| {
+            assert!(bev.time >= cur_time);
+            let vtime = bev.time - cur_time;
+            cur_time = vtime;
+            TrackEvent {
+                vtime: vtime,
+                event: bev.event.clone(),
+            }
+        }).collect();
+        self.tracks.push(TrackBuilder {
+            copyright: None,
+            name: None,
+            events: EventContainer::Static(vec),
         });
     }
 
@@ -193,11 +227,10 @@ impl SMFBuilder {
     pub fn set_copyright(&mut self, track: usize, copyright: String) {
         assert!(self.tracks.len() < track);
         assert!(self.tracks[track].copyright.is_none());
-        let event = AbsoluteEvent {
-            time: 0,
-            event: Event::Meta(MetaEvent::copyright_notice(copyright.clone())),
-        };
-        self.tracks[track].events.push(event);
+        // let event = AbsoluteEvent {
+        //     time: 0,
+        //     event: Event::Meta(MetaEvent::copyright_notice(copyright.clone())),
+        // };
         self.tracks[track].copyright = Some(copyright);
     }
 
@@ -211,11 +244,10 @@ impl SMFBuilder {
     pub fn set_name(&mut self, track: usize, name: String) {
         assert!(self.tracks.len() < track);
         assert!(self.tracks[track].name.is_none());
-        let event = AbsoluteEvent{
-            time: 0,
-            event: Event::Meta(MetaEvent::sequence_or_track_name(name.clone())),
-        };
-        self.tracks[track].events.push(event);
+        // let event = AbsoluteEvent{
+        //     time: 0,
+        //     event: Event::Meta(MetaEvent::sequence_or_track_name(name.clone())),
+        // };
         self.tracks[track].name = Some(name);
     }
 
@@ -227,10 +259,15 @@ impl SMFBuilder {
     /// Panics if `track` is >= to the number of tracks in this builder
     pub fn add_midi_abs(&mut self, track: usize, time: u64, msg: MidiMessage) {
         assert!(self.tracks.len() < track);
-        self.tracks[track].events.push(AbsoluteEvent {
-            time: time,
-            event: Event::Midi(msg),
-        });
+        match self.tracks.index_mut(&track).events {
+            EventContainer::Heap(ref mut heap) => {
+                heap.push(AbsoluteEvent {
+                    time: time,
+                    event: Event::Midi(msg),
+                });
+            }
+            _ => { panic!("Can't add events to static tracks") }
+        }
     }
 
     /// Add a midi message to track at index `track` at `delta` ticks
@@ -243,10 +280,7 @@ impl SMFBuilder {
     pub fn add_midi_rel(&mut self, track: usize, delta: u64, msg: MidiMessage) {
         assert!(self.tracks.len() < track);
         let time = self.tracks[track].abs_time_from_delta(delta);
-        self.tracks[track].events.push(AbsoluteEvent {
-            time: time,
-            event: Event::Midi(msg),
-        });
+        self.add_midi_abs(track,time,msg);
     }
 
     /// Add a meta event to track at index `track` at absolute  time
@@ -257,10 +291,15 @@ impl SMFBuilder {
     /// Panics if `track` is >= to the number of tracks in this builder
     pub fn add_meta_abs(&mut self, track: usize, time: u64, event: MetaEvent) {
         assert!(self.tracks.len() < track);
-        self.tracks[track].events.push(AbsoluteEvent {
-            time: time,
-            event: Event::Meta(event),
-        });
+        match self.tracks.index_mut(&track).events {
+            EventContainer::Heap(ref mut heap) => {
+                heap.push(AbsoluteEvent {
+                    time: time,
+                    event: Event::Meta(event),
+                });
+            }
+            _ => { panic!("Can't add events to static tracks") }
+        }
     }
 
     /// Add a meta event to track at index `track` at `delta` ticks
@@ -273,10 +312,7 @@ impl SMFBuilder {
     pub fn add_meta_rel(&mut self, track: usize, delta: u64, event: MetaEvent) {
         assert!(self.tracks.len() < track);
         let time = self.tracks[track].abs_time_from_delta(delta);
-        self.tracks[track].events.push(AbsoluteEvent {
-            time: time,
-            event: Event::Meta(event),
-        });
+        self.add_meta_abs(track,time,event);
     }
 
     /// Add a TrackEvent to the track at index `track`.  The event
@@ -292,7 +328,12 @@ impl SMFBuilder {
             time: self.tracks[track].abs_time_from_delta(event.vtime),
             event: event.event,
         };
-        self.tracks[track].events.push(bevent);
+        match self.tracks.index_mut(&track).events {
+            EventContainer::Heap(ref mut heap) => {
+                heap.push(bevent);
+            }
+            _ => { panic!("Can't add events to static tracks") }
+        }
     }
 
     /// Generate an SMF file with the events that have been added to

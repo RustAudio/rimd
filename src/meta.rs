@@ -47,7 +47,7 @@ impl fmt::Display for MetaError {
 }
 
 /// Commands that meta messages can represent
-#[derive(FromPrimitive,PartialEq,Eq,PartialOrd,Ord)]
+#[derive(Copy,FromPrimitive,PartialEq,Eq,PartialOrd,Ord)]
 pub enum MetaCommand {
     SequenceNumber = 0x00,
     TextEvent = 0x01,
@@ -68,8 +68,6 @@ pub enum MetaCommand {
     Unknown,
 }
 
-impl Copy for MetaCommand{}
-
 /// Meta event building and parsing.  See
 /// http://cs.fit.edu/~ryan/cse4051/projects/midi/midi.html#meta_event
 /// for a description of the various meta events and their formats
@@ -77,6 +75,16 @@ pub struct MetaEvent {
     pub command: MetaCommand,
     pub length: u64,
     pub data: Vec<u8>,
+}
+
+impl Clone for MetaEvent {
+    fn clone(&self) -> MetaEvent {
+        MetaEvent {
+            command: self.command,
+            length: self.length,
+            data: self.data.clone(),
+        }
+    }
 }
 
 impl fmt::Display for MetaEvent {

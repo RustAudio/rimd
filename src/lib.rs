@@ -13,7 +13,7 @@
 //! http://cs.fit.edu/~ryan/cse4051/projects/midi/midi.html#meta_event
 
 
-#![allow(unstable)]
+#![feature(core,collections,io)]
 
 use std::error;
 use std::old_io::{File,IoError,IoErrorKind,Reader};
@@ -42,6 +42,10 @@ use reader:: {
     SMFReader,
 };
 
+pub use writer:: {
+    SMFWriter,
+};
+
 pub use util:: {
     note_num_to_name,
 };
@@ -50,16 +54,17 @@ mod builder;
 mod midi;
 mod meta;
 mod reader;
+mod writer;
 mod util;
 
 /// Format of the SMF
 pub enum SMFFormat {
     /// single track file format
-    Single,
+    Single = 0,
     /// multiple track file format
-    MultiTrack,
+    MultiTrack = 1,
     /// multiple song file format (i.e., a series of single type files)
-    MultiSong,
+    MultiSong = 2,
 }
 
 impl Copy for SMFFormat {}
@@ -75,6 +80,7 @@ impl fmt::Display for SMFFormat {
 }
 
 /// An event can be either a midi message or a meta event
+#[derive(Clone)]
 pub enum Event {
     Midi(MidiMessage),
     Meta(MetaEvent),
@@ -101,7 +107,13 @@ pub struct TrackEvent {
 
 impl fmt::Display for TrackEvent {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "time: {}\t{}",self.vtime,self.event)
+        write!(f, "vtime: {}\t{}",self.vtime,self.event)
+    }
+}
+
+impl TrackEvent {
+    pub fn fmt_with_time_offset(&self, cur_time: u64) -> String {
+        format!("time: {}\t{}",(self.vtime+cur_time),self.event)
     }
 }
 
