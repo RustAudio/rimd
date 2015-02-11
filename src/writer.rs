@@ -1,7 +1,7 @@
 use std::old_io::{File,Writer,IoError, Truncate, Write};
 
 use SMF;
-use ::{Event,AbsoluteEvent,MetaCommand,SMFFormat};
+use ::{Event,AbsoluteEvent,MetaEvent,MetaCommand,SMFFormat};
 
 /// An SMFWriter is used to write an SMF to a file.  It can be either
 /// constructed empty and have tracks added, or created from an
@@ -125,9 +125,10 @@ impl SMFWriter {
     fn finish_track_write(&self, vec: &mut Vec<u8>, length: &mut u32, saw_eot: bool) {
         if !saw_eot {
             // no end of track marker in passed data, add one
-            *length += SMFWriter::write_vtime(0,vec).unwrap() + 1;
+            *length += SMFWriter::write_vtime(0,vec).unwrap();
+            vec.push(0xff); // indicate we're writing a meta event
             vec.push(MetaCommand::EndOfTrack as u8);
-            *length += SMFWriter::write_vtime(0,vec).unwrap() + 1; // write length of meta command: 0
+            *length += SMFWriter::write_vtime(0,vec).unwrap() + 2; // write length of meta command: 0
         }
 
         // write in the length in the space we reserved
@@ -141,6 +142,12 @@ impl SMFWriter {
 
     /// Add any sequence of AbsoluteEvents as a track to this writer
     pub fn add_track<'a,I>(&mut self, track: I) where I: Iterator<Item=&'a AbsoluteEvent> {
+        self.add_track_with_name(track,None)
+    }
+
+    /// Add any sequence of AbsoluteEvents as a track to this writer.  A meta event with the given name will
+    /// be added at the start of the track
+    pub fn add_track_with_name<'a,I>(&mut self, track: I, name: Option<String>) where I: Iterator<Item=&'a AbsoluteEvent> {
         let mut vec = Vec::new();
 
         self.start_track_header(&mut vec);
@@ -148,6 +155,15 @@ impl SMFWriter {
         let mut length = 0;
         let mut cur_time: u64 = 0;
         let mut saw_eot = false;
+
+        match name {
+            Some(n) => {
+                let namemeta = Event::Meta(MetaEvent::sequence_or_track_name(n));
+                length += SMFWriter::write_vtime(0,&mut vec).unwrap();
+                self.write_event(&mut vec, &namemeta, &mut length, &mut saw_eot);
+            }
+            None => {}
+        }
 
         for ev in track {
             let vtime = ev.get_time() - cur_time;
