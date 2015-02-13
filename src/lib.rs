@@ -13,7 +13,7 @@
 //! http://cs.fit.edu/~ryan/cse4051/projects/midi/midi.html#meta_event
 
 
-#![feature(core,collections,io)]
+#![feature(core,collections,io,path)]
 
 use std::error;
 use std::old_io::{File,IoError,IoErrorKind,Reader};

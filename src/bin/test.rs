@@ -1,4 +1,4 @@
-#![feature(core,env,os,path)]
+#![feature(env,path)]
 
 extern crate rimd;
 
@@ -8,9 +8,9 @@ use std::env::{args,Args};
 fn main() {
     let mut args: Args = args();
     args.next();
-    let pathstr = match args.next().unwrap().into_string().clone() {
-        Ok(s) => s,
-        Err(_) => { panic!("Invalid path") },
+    let pathstr = match args.next() {
+        Some(s) => s,
+        None => { panic!("Please pass a path to a SMF to test") },
     };
     println!("Reading: {}",pathstr);
     match SMF::from_file(&Path::new(pathstr)) {
