@@ -114,7 +114,7 @@ impl fmt::Display for MetaEvent {
                    MetaCommand::SMPTEOffset => format!("SMPTEOffset"),
                    MetaCommand::TimeSignature => format!("Time Signature: {}/{}, {} ticks/metronome click, {} 32nd notes/quarter note",
                                                          self.data[0],
-                                                         2us.pow(self.data[1] as usize),
+                                                         2usize.pow(self.data[1] as u32),
                                                          self.data[2],
                                                          self.data[3]),
                    MetaCommand::KeySignature => format!("Key Signature, {} sharps/flats, {}",

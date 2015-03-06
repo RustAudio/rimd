@@ -1,4 +1,4 @@
-#![feature(env,path)]
+#![feature(old_path)]
 
 extern crate rimd;
 
