@@ -1,4 +1,8 @@
-use std::old_io::{File,Writer,IoError, Truncate, Write};
+use std::fs::OpenOptions;
+use std::io::{Error,Write};
+use std::path::Path;
+
+use byteorder::{BigEndian, WriteBytesExt};
 
 use SMF;
 use ::{Event,AbsoluteEvent,MetaEvent,MetaCommand,SMFFormat};
@@ -66,28 +70,32 @@ impl SMFWriter {
         writer
     }
 
-    // Write a variable length value.  Return number of bytes written.
-    fn write_vtime(val: u64, writer: &mut Writer) -> Result<u32,IoError> {
+    pub fn vtime_to_vec(val: u64) -> Vec<u8> {
         let mut storage = Vec::new();
         let mut cur = val;
-        let mut written = 0;
+        let mut continuation = false;
         let cont_mask = 0x80 as u8;
         let val_mask = 0x7F as u64;
         loop {
             let mut to_write = (cur & val_mask) as u8;
             cur = cur >> 7;
-            if written != 0 {
+            if continuation {
                 // we're writing a continuation byte, so set the bit
                 to_write |= cont_mask;
             }
             storage.push(to_write);
-            written += 1;
+            continuation = true;
             if cur == 0 { break; }
         }
-        for b in storage.iter().rev() {
-            try!(writer.write_u8(*b));
-        }
-        Ok(written)
+        storage.reverse();
+        storage
+    }
+
+    // Write a variable length value.  Return number of bytes written.
+    pub fn write_vtime(val: u64, writer: &mut Write) -> Result<u32,Error> {
+        let storage = SMFWriter::vtime_to_vec(val);
+        try!(writer.write_all(&storage[..]));
+        Ok(storage.len() as u32)
     }
 
     fn start_track_header(&self, vec: &mut Vec<u8>) {
@@ -105,7 +113,7 @@ impl SMFWriter {
     fn write_event(&self, vec: &mut Vec<u8>, event: &Event, length: &mut u32, saw_eot: &mut bool) {
         match event {
             &Event::Midi(ref midi) => {
-                vec.push_all(midi.data.as_slice());
+                vec.extend(midi.data.iter());
                 *length += midi.data.len() as u32;
             }
             &Event::Meta(ref meta) => {
@@ -113,7 +121,7 @@ impl SMFWriter {
                 vec.push(meta.command as u8);
                 // +2 on next line for the 0xff and the command byte we just wrote
                 *length += SMFWriter::write_vtime(meta.length,vec).unwrap() + 2;
-                vec.push_all(meta.data.as_slice());
+                vec.extend(meta.data.iter());
                 *length += meta.data.len() as u32;
                 if meta.command == MetaCommand::EndOfTrack {
                     *saw_eot = true;
@@ -179,21 +187,21 @@ impl SMFWriter {
 
     // actual writing stuff below
 
-    fn write_header(&self, writer: &mut Writer) -> Result<(),IoError> {
+    fn write_header(&self, writer: &mut Write) -> Result<(),Error> {
         try!(writer.write_all(&[0x4D,0x54,0x68,0x64]));
-        try!(writer.write_be_u32(6));
-        try!(writer.write_be_u16(self.format));
-        try!(writer.write_be_u16(self.tracks.len() as u16));
-        try!(writer.write_be_i16(self.ticks));
+        try!(writer.write_u32::<BigEndian>(6));
+        try!(writer.write_u16::<BigEndian>(self.format));
+        try!(writer.write_u16::<BigEndian>(self.tracks.len() as u16));
+        try!(writer.write_i16::<BigEndian>(self.ticks));
         Ok(())
     }
 
     /// Write out all the tracks that have been added to this
     /// SMFWriter to the passed writer
-    pub fn write_all(self, writer: &mut Writer) -> Result<(),IoError> {
+    pub fn write_all(self, writer: &mut Write) -> Result<(),Error> {
         try!(self.write_header(writer));
         for track in self.tracks.into_iter() {
-            try!(writer.write_all(track.as_slice()));
+            try!(writer.write_all(&track[..]));
         }
         Ok(())
     }
@@ -201,8 +209,8 @@ impl SMFWriter {
     /// Write out the result of the tracks that have been added to a
     /// file.
     /// Warning: This will overwrite an existing file
-    pub fn write_to_file(self, path: &Path) -> Result<(),IoError> {
-        let mut file = try!(File::open_mode(path,Truncate,Write));
+    pub fn write_to_file(self, path: &Path) -> Result<(),Error> {
+        let mut file = try!(OpenOptions::new().write(true).truncate(true).create(true).open(path));
         self.write_all(&mut file)
     }
 

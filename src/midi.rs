@@ -1,18 +1,23 @@
 use std::error;
-use std::old_io::{IoError,Reader};
-use std::num::FromPrimitive;
 use std::fmt;
+use std::convert::From;
+use std::io::{Error,Read};
+
+use num::FromPrimitive;
+
+use util::read_byte;
 
 /// An error that can occur trying to parse a midi message
+#[derive(Debug)]
 pub enum MidiError {
     InvalidStatus(u8),
     OtherErr(&'static str),
-    IoError(IoError),
+    Error(Error),
 }
 
-impl error::FromError<IoError> for MidiError {
-    fn from_error(err: IoError) -> MidiError {
-        MidiError::IoError(err)
+impl From<Error> for MidiError {
+    fn from(err: Error) -> MidiError {
+        MidiError::Error(err)
     }
 }
 
@@ -21,13 +26,13 @@ impl error::Error for MidiError {
         match *self {
             MidiError::InvalidStatus(_) => "Midi data has invalid status byte",
             MidiError::OtherErr(_) => "A general midi error has occured",
-            MidiError::IoError(ref e) => e.description(),
+            MidiError::Error(ref e) => e.description(),
         }
     }
 
     fn cause(&self) -> Option<&error::Error> {
         match *self {
-            MidiError::IoError(ref err) => Some(err as &error::Error),
+            MidiError::Error(ref err) => Some(err as &error::Error),
             _ => None,
         }
     }
@@ -38,14 +43,15 @@ impl fmt::Display for MidiError {
         match *self {
             MidiError::InvalidStatus(ref s) => write!(f,"Invalid Midi status: {}",s),
             MidiError::OtherErr(ref s) => write!(f,"Midi Error: {}",s),
-            MidiError::IoError(ref e) => write!(f,"{}",e),
+            MidiError::Error(ref e) => write!(f,"{}",e),
         }
     }
 }
 
 /// The status field of a midi message indicates what midi command it
 /// represents and what channel it is on
-#[derive(FromPrimitive,PartialEq,Copy)]
+enum_from_primitive! {
+#[derive(Debug,PartialEq,Clone,Copy)]
 pub enum Status {
     // voice
     NoteOff = 0x80,
@@ -70,10 +76,12 @@ pub enum Status {
     ActiveSensing = 0xFE, // FD also res/unused
     SystemReset = 0xFF,
 }
+}
 
 /// Midi message building and parsing.  See
 /// http://www.midi.org/techspecs/midimessages.php for a description
 /// of the various Midi messages that exist.
+#[derive(Debug)]
 pub struct MidiMessage {
     pub data: Vec<u8>,
 }
@@ -92,7 +100,7 @@ static CHANNEL_MASK: u8 = 0x0F;
 impl MidiMessage {
     /// Return the status (type) of this message
     pub fn status(&self) -> Status {
-        FromPrimitive::from_u8(self.data[0] & STATUS_MASK).unwrap()
+        Status::from_u8(self.data[0] & STATUS_MASK).unwrap()
     }
 
     /// Return the channel this message is on (TODO: return 0 for messages with no channel)
@@ -124,7 +132,7 @@ impl MidiMessage {
     // -2 -> sysex, read until SysExEnd
     // -3 -> invalid status
     fn data_bytes(status: u8) -> isize {
-        match FromPrimitive::from_u8(status & STATUS_MASK) {
+        match Status::from_u8(status & STATUS_MASK) {
             Some(stat) => {
                 match stat {
                     Status::NoteOff |
@@ -157,14 +165,31 @@ impl MidiMessage {
 
     /// Get the next midi message from the reader given that the
     /// status `stat` has just been read
-    pub fn next_message_given_status(stat: u8, reader: &mut Reader) -> Result<MidiMessage, MidiError> {
+    pub fn next_message_given_status(stat: u8, reader: &mut Read) -> Result<MidiMessage, MidiError> {
         let mut ret:Vec<u8> = Vec::with_capacity(3);
         ret.push(stat);
         match MidiMessage::data_bytes(stat) {
             0 => {}
-            1 => { ret.push(try!(reader.read_byte())); }
-            2 => { ret.push(try!(reader.read_byte()));
-                   ret.push(try!(reader.read_byte())); }
+            1 => { ret.push(try!(read_byte(reader))); }
+            2 => { ret.push(try!(read_byte(reader)));
+                   ret.push(try!(read_byte(reader))); }
+            -1 => { return Err(MidiError::OtherErr("Don't handle variable sized yet")); }
+            -2 => { return Err(MidiError::OtherErr("Don't handle sysex yet")); }
+            _ =>  { return Err(MidiError::InvalidStatus(stat)); }
+        }
+        Ok(MidiMessage{data: ret})
+    }
+
+    /// Get the next midi message from the reader given that there's a running
+    /// status of `stat` and that in place of a status was read `databyte`
+    pub fn next_message_running_status(stat: u8, databyte: u8, reader: &mut Read) -> Result<MidiMessage, MidiError> {
+        let mut ret:Vec<u8> = Vec::with_capacity(3);
+        ret.push(stat);
+        ret.push(databyte);
+        match MidiMessage::data_bytes(stat) {
+            0 => { panic!("Can't have zero length message with running status"); }
+            1 => { } // already read it
+            2 => { ret.push(try!(read_byte(reader))); } // only need one more byte
             -1 => { return Err(MidiError::OtherErr("Don't handle variable sized yet")); }
             -2 => { return Err(MidiError::OtherErr("Don't handle sysex yet")); }
             _ =>  { return Err(MidiError::InvalidStatus(stat)); }
@@ -173,8 +198,8 @@ impl MidiMessage {
     }
 
     /// Extract next midi message from a reader
-    pub fn next_message(reader: &mut Reader) -> Result<MidiMessage,MidiError> {
-        let stat = try!(reader.read_byte());
+    pub fn next_message(reader: &mut Read) -> Result<MidiMessage,MidiError> {
+        let stat = try!(read_byte(reader));
         MidiMessage::next_message_given_status(stat,reader)
     }
 

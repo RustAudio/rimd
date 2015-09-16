@@ -12,11 +12,15 @@
 //! For a description of the underlying format of meta messages see:<br/>
 //! http://cs.fit.edu/~ryan/cse4051/projects/midi/midi.html#meta_event
 
-
-#![feature(core,collections,old_io,old_path)]
+extern crate byteorder;
+#[macro_use] extern crate enum_primitive;
+extern crate num;
 
 use std::error;
-use std::old_io::{File,IoError,IoErrorKind,Reader};
+use std::convert::From;
+use std::fs::File;
+use std::io::{Error,Read};
+use std::path::Path;
 
 use std::fmt;
 use std::string::FromUtf8Error;
@@ -58,6 +62,7 @@ mod writer;
 mod util;
 
 /// Format of the SMF
+#[derive(Debug,Clone,Copy)]
 pub enum SMFFormat {
     /// single track file format
     Single = 0,
@@ -67,7 +72,6 @@ pub enum SMFFormat {
     MultiSong = 2,
 }
 
-impl Copy for SMFFormat {}
 
 impl fmt::Display for SMFFormat {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -80,7 +84,7 @@ impl fmt::Display for SMFFormat {
 }
 
 /// An event can be either a midi message or a meta event
-#[derive(Clone)]
+#[derive(Debug,Clone)]
 pub enum Event {
     Midi(MidiMessage),
     Meta(MetaEvent),
@@ -95,7 +99,22 @@ impl fmt::Display for Event {
     }
 }
 
+impl Event {
+    /// Return the number of bytes this event uses.
+    pub fn len(&self) -> usize {
+        match *self {
+            Event::Midi(ref m) => { m.data.len() }
+            Event::Meta(ref m) => {
+                let v = SMFWriter::vtime_to_vec(m.length);
+                // +1 for command byte +1 for 0xFF to indicate Meta event
+                v.len() + m.data.len() + 2
+            }
+        }
+    }
+}
+
 /// An event occuring in the track.
+#[derive(Debug)]
 pub struct TrackEvent {
     /// A delta offset, indicating how many ticks after the previous
     /// event this event occurs
@@ -115,9 +134,17 @@ impl TrackEvent {
     pub fn fmt_with_time_offset(&self, cur_time: u64) -> String {
         format!("time: {}\t{}",(self.vtime+cur_time),self.event)
     }
+
+    /// Return the number of bytes this event uses in the track,
+    /// including the space for the time offset.
+    pub fn len(&self) -> usize {
+        let v = SMFWriter::vtime_to_vec(self.vtime);
+        v.len() + self.event.len()
+    }
 }
 
 /// A sequence of midi/meta events
+#[derive(Debug)]
 pub struct Track {
     /// Optional copyright notice
     pub copyright: Option<String>,
@@ -131,11 +158,11 @@ impl fmt::Display for Track {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "Track, copyright: {}, name: {}",
                match self.copyright {
-                   Some(ref c) => c.as_slice(),
+                   Some(ref c) => &c[..],
                    None => "[none]"
                },
                match self.name {
-                   Some(ref n) => n.as_slice(),
+                   Some(ref n) => &n[..],
                    None => "[none]"
                })
     }
@@ -143,44 +170,45 @@ impl fmt::Display for Track {
 
 
 /// An error that occured in parsing an SMF
+#[derive(Debug)]
 pub enum SMFError {
     InvalidSMFFile(&'static str),
     MidiError(MidiError),
     MetaError(MetaError),
-    IoError(IoError),
+    Error(Error),
 }
 
 impl SMFError {
     fn is_eof(&self) -> bool {
         match *self {
-            SMFError::IoError(ref err) => {
-                err.kind == IoErrorKind::EndOfFile
-            }
+            // SMFError::Error(ref err) => {
+            //     err.kind() == ErrorKind::EndOfFile
+            // }
             _ => false
         }
     }
 }
 
-impl error::FromError<IoError> for SMFError {
-    fn from_error(err: IoError) -> SMFError {
-        SMFError::IoError(err)
+impl From<Error> for SMFError {
+    fn from(err: Error) -> SMFError {
+        SMFError::Error(err)
     }
 }
 
-impl error::FromError<MidiError> for SMFError {
-    fn from_error(err: MidiError) -> SMFError {
+impl From<MidiError> for SMFError {
+    fn from(err: MidiError) -> SMFError {
         SMFError::MidiError(err)
     }
 }
 
-impl error::FromError<MetaError> for SMFError {
-    fn from_error(err: MetaError) -> SMFError {
+impl From<MetaError> for SMFError {
+    fn from(err: MetaError) -> SMFError {
         SMFError::MetaError(err)
     }
 }
 
-impl error::FromError<FromUtf8Error> for SMFError {
-    fn from_error(_: FromUtf8Error) -> SMFError {
+impl From<FromUtf8Error> for SMFError {
+    fn from(_: FromUtf8Error) -> SMFError {
         SMFError::InvalidSMFFile("Invalid UTF8 data in file")
     }
 }
@@ -189,7 +217,7 @@ impl error::Error for SMFError {
     fn description(&self) -> &str {
         match *self {
             SMFError::InvalidSMFFile(_) => "The SMF file was invalid",
-            SMFError::IoError(ref e)        => e.description(),
+            SMFError::Error(ref e)        => e.description(),
             SMFError::MidiError(ref m)      => m.description(),
             SMFError::MetaError(ref m)      => m.description(),
         }
@@ -199,7 +227,7 @@ impl error::Error for SMFError {
         match *self {
             SMFError::MidiError(ref m) => Some(m as &error::Error),
             SMFError::MetaError(ref m) => Some(m as &error::Error),
-            SMFError::IoError(ref err) => Some(err as &error::Error),
+            SMFError::Error(ref err) => Some(err as &error::Error),
             _ => None,
         }
     }
@@ -211,12 +239,13 @@ impl fmt::Display for SMFError {
            SMFError::InvalidSMFFile(s) => write!(f,"SMF file is invalid: {}",s),
            SMFError::MidiError(ref err) => { write!(f,"{}",err) },
            SMFError::MetaError(ref err) => { write!(f,"{}",err) },
-           SMFError::IoError(ref err) => { write!(f,"{}",err) },
+           SMFError::Error(ref err) => { write!(f,"{}",err) },
        }
     }
 }
 
 /// A standard midi file
+#[derive(Debug)]
 pub struct SMF {
     /// The format of the SMF
     pub format: SMFFormat,
@@ -238,7 +267,7 @@ impl SMF {
     }
 
     /// Read an SMF from the given reader
-    pub fn from_reader(reader: &mut Reader) -> Result<SMF,SMFError> {
+    pub fn from_reader(reader: &mut Read) -> Result<SMF,SMFError> {
         SMFReader::read_smf(reader)
     }
 }

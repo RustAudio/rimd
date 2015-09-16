@@ -141,16 +141,24 @@ impl TrackBuilder {
             copyright: self.copyright,
             name: self.name,
             events: match self.events {
-                EventContainer::Heap(heap) => {
+                EventContainer::Heap(mut heap) => {
+                    let mut events = Vec::new();
+                    events.reserve(heap.len());
                     let mut cur_time: u64 = 0;
-                    heap.into_sorted_vec().into_iter().map(|bev| {
-                        let vtime = bev.time - cur_time;
-                        cur_time = vtime;
-                        TrackEvent {
-                            vtime: vtime,
-                            event: bev.event,
+                    loop {
+                        match heap.pop() {
+                            Some(bev) => {
+                                let vtime = bev.time - cur_time;
+                                cur_time = vtime;
+                                events.push(TrackEvent {
+                                    vtime: vtime,
+                                    event: bev.event,
+                                });
+                            }
+                            None => { break; }
                         }
-                    }).collect()
+                    }
+                    events
                 },
                 EventContainer::Static(vec) => vec,
             },
@@ -259,7 +267,7 @@ impl SMFBuilder {
     /// Panics if `track` is >= to the number of tracks in this builder
     pub fn add_midi_abs(&mut self, track: usize, time: u64, msg: MidiMessage) {
         assert!(self.tracks.len() < track);
-        match self.tracks.index_mut(&track).events {
+        match self.tracks.index_mut(track).events {
             EventContainer::Heap(ref mut heap) => {
                 heap.push(AbsoluteEvent {
                     time: time,
@@ -291,7 +299,7 @@ impl SMFBuilder {
     /// Panics if `track` is >= to the number of tracks in this builder
     pub fn add_meta_abs(&mut self, track: usize, time: u64, event: MetaEvent) {
         assert!(self.tracks.len() < track);
-        match self.tracks.index_mut(&track).events {
+        match self.tracks.index_mut(track).events {
             EventContainer::Heap(ref mut heap) => {
                 heap.push(AbsoluteEvent {
                     time: time,
@@ -328,7 +336,7 @@ impl SMFBuilder {
             time: self.tracks[track].abs_time_from_delta(event.vtime),
             event: event.event,
         };
-        match self.tracks.index_mut(&track).events {
+        match self.tracks.index_mut(track).events {
             EventContainer::Heap(ref mut heap) => {
                 heap.push(bevent);
             }

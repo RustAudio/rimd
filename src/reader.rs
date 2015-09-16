@@ -1,17 +1,18 @@
-use std::old_io::Reader;
-use std::old_io::util::IterReader;
+use std::io::Read;
 
 use SMF;
 use ::{Event,SMFError,SMFFormat,MetaCommand,MetaEvent,MidiMessage,Track,TrackEvent};
 
+use util::{fill_buf,read_byte};
+
 /// An SMFReader can parse a byte stream into an SMF
-#[derive(Copy)]
+#[derive(Clone,Copy)]
 pub struct SMFReader;
 
 impl SMFReader {
-    fn parse_header(reader: &mut Reader) -> Result<SMF,SMFError> {
+    fn parse_header(reader: &mut Read) -> Result<SMF,SMFError> {
         let mut header:[u8;14] = [0;14];
-        try!(reader.read_at_least(14,&mut header));
+        try!(fill_buf(reader,&mut header));
 
         if header[0] != 0x4D ||
            header[1] != 0x54 ||
@@ -34,9 +35,16 @@ impl SMFReader {
                  division: division } )
     }
 
-    fn next_event(reader: &mut Reader) -> Result<TrackEvent,SMFError> {
+    fn next_event(reader: &mut Read, laststat: u8, was_running: &mut bool) -> Result<TrackEvent,SMFError> {
         let time = try!(SMFReader::read_vtime(reader));
-        let stat = try!(reader.read_byte());
+        let stat = try!(read_byte(reader));
+
+        if (stat & 0x80) == 0 {
+            *was_running = true;
+        } else {
+            *was_running = false;
+        }
+
         match stat {
             0xFF => {
                 let event = try!(MetaEvent::next_event(reader));
@@ -46,7 +54,13 @@ impl SMFReader {
                 })
             }
             _ => {
-                let msg = try!(MidiMessage::next_message_given_status(stat,reader));
+                let msg =
+                    if (stat & 0x80) == 0 {
+                        // this is a running status, so assume we have the same status as last time
+                        try!(MidiMessage::next_message_running_status(laststat,stat,reader))
+                    } else {
+                        try!(MidiMessage::next_message_given_status(stat,reader))
+                    };
                 Ok( TrackEvent {
                     vtime: time,
                     event: Event::Midi(msg),
@@ -55,29 +69,39 @@ impl SMFReader {
         }
     }
 
-    fn parse_track(reader: &mut Reader) -> Result<Track,SMFError> {
+    fn parse_track(reader: &mut Read) -> Result<Track,SMFError> {
         let mut res:Vec<TrackEvent> = Vec::new();
         let mut buf:[u8;4] = [0;4];
 
         let mut copyright = None;
         let mut name = None;
 
-        try!(reader.read_at_least(4,&mut buf));
+        try!(fill_buf(reader,&mut buf));
         if buf[0] != 0x4D ||
            buf[1] != 0x54 ||
            buf[2] != 0x72 ||
            buf[3] != 0x6B {
                return Err(SMFError::InvalidSMFFile("Invalid track magic"));
            }
-        try!(reader.read_at_least(4,&mut buf));
+        try!(fill_buf(reader,&mut buf));
         let len =
             ((buf[0] as u32) << 24 |
-            (buf[1] as u32) << 16 |
-            (buf[2] as u32) << 8 |
-            (buf[3] as u32)) as usize;
-        let mut data = IterReader::new(try!(reader.read_exact(len)).into_iter());
+             (buf[1] as u32) << 16 |
+             (buf[2] as u32) << 8 |
+             (buf[3] as u32)) as usize;
+
+        let mut read_so_far = 0;
+
         loop {
-            match SMFReader::next_event(&mut data) {
+            let last = match res.last() {
+                Some(e) => match e.event {
+                    Event::Midi(ref m) => { m.data[0] }
+                    _ => { 0u8 }
+                },
+                None => { 0u8 }
+            };
+            let mut was_running = false;
+            match SMFReader::next_event(reader,last,&mut was_running) {
                 Ok(event) => {
                     match event.event {
                         Event::Meta(ref me) => {
@@ -89,7 +113,15 @@ impl SMFReader {
                         },
                         _ => {}
                     }
-                    res.push(event)
+                    read_so_far += event.len();
+                    if was_running {
+                        // used a running status, so didn't actually read a status byte
+                        read_so_far -= 1;
+                    }
+                    res.push(event);
+                    if read_so_far == len {
+                        break;
+                    }
                 },
                 Err(err) => {
                     if err.is_eof() { break; }
@@ -106,7 +138,7 @@ impl SMFReader {
 
     /// Read a variable sized value from the reader.
     /// This is usually used for the times of midi events but is used elsewhere as well.
-    pub fn read_vtime(reader: &mut Reader) -> Result<u64,SMFError> {
+    pub fn read_vtime(reader: &mut Read) -> Result<u64,SMFError> {
         let mut res: u64 = 0;
         let mut i = 0;
         let cont_mask = 0x80;
@@ -116,7 +148,7 @@ impl SMFReader {
             if i > 9 {
                 return Err(SMFError::InvalidSMFFile("Variable length value too long"));
             }
-            let next = try!(reader.read_byte());
+            let next = try!(read_byte(reader));
             res |= next as u64 & val_mask;
             if (next & cont_mask) == 0 {
                 break;
@@ -127,7 +159,7 @@ impl SMFReader {
     }
 
     /// Read an entire SMF file
-    pub fn read_smf(reader: &mut Reader) -> Result<SMF,SMFError> {
+    pub fn read_smf(reader: &mut Read) -> Result<SMF,SMFError> {
         let mut smf = SMFReader::parse_header(reader);
         match smf {
             Ok(ref mut s) => {

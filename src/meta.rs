@@ -1,21 +1,25 @@
 use std::error;
-use std::old_io::{IoError,Reader};
+use std::io::{Error,Read};
 use std::fmt;
-use std::num::{FromPrimitive,Int};
 use std::string::FromUtf8Error;
 
 use reader::SMFReader;
 
+use num::FromPrimitive;
+
+use util::{read_byte,read_amount};
+
 /// An error that can occur parsing a meta command
+#[derive(Debug)]
 pub enum MetaError {
     InvalidCommand(u8),
     OtherErr(&'static str),
-    IoError(IoError),
+    Error(Error),
 }
 
-impl error::FromError<IoError> for MetaError {
-    fn from_error(err: IoError) -> MetaError {
-        MetaError::IoError(err)
+impl From<Error> for MetaError {
+    fn from(err: Error) -> MetaError {
+        MetaError::Error(err)
     }
 }
 
@@ -24,13 +28,13 @@ impl error::Error for MetaError {
         match *self {
             MetaError::InvalidCommand(_) => "Invalid meta command",
             MetaError::OtherErr(_) => "A general midi error has occured",
-            MetaError::IoError(ref e) => e.description(),
+            MetaError::Error(ref e) => e.description(),
         }
     }
 
     fn cause(&self) -> Option<&error::Error> {
         match *self {
-            MetaError::IoError(ref err) => Some(err as &error::Error),
+            MetaError::Error(ref err) => Some(err as &error::Error),
             _ => None,
         }
     }
@@ -41,13 +45,14 @@ impl fmt::Display for MetaError {
         match *self {
             MetaError::InvalidCommand(ref c) => write!(f,"Invalid Meta command: {}",c),
             MetaError::OtherErr(ref s) => write!(f,"Meta Error: {}",s),
-            MetaError::IoError(ref e) => write!(f,"{}",e),
+            MetaError::Error(ref e) => write!(f,"{}",e),
         }
     }
 }
 
 /// Commands that meta messages can represent
-#[derive(Copy,FromPrimitive,PartialEq,Eq,PartialOrd,Ord)]
+enum_from_primitive! {
+#[derive(Clone,Copy,Debug,PartialEq,Eq,PartialOrd,Ord)]
 pub enum MetaCommand {
     SequenceNumber = 0x00,
     TextEvent = 0x01,
@@ -67,10 +72,12 @@ pub enum MetaCommand {
     SequencerSpecificEvent = 0x7F,
     Unknown,
 }
+}
 
 /// Meta event building and parsing.  See
 /// http://cs.fit.edu/~ryan/cse4051/projects/midi/midi.html#meta_event
 /// for a description of the various meta events and their formats
+#[derive(Debug)]
 pub struct MetaEvent {
     pub command: MetaCommand,
     pub length: u64,
@@ -103,7 +110,13 @@ impl fmt::Display for MetaEvent {
                        };
                        format!("Sequence/Track Name, length: {}, name: {}",self.length,text)
                    },
-                   MetaCommand::InstrumentName => format!("InstrumentName"),
+                   MetaCommand::InstrumentName => {
+                       let text = match String::from_utf8(self.data.clone()) {
+                           Ok(s) => s,
+                           Err(_) => format!("[invalid string data]"),
+                       };
+                       format!("InstrumentName: {}",text)
+                   },
                    MetaCommand::LyricText => format!("LyricText"),
                    MetaCommand::MarkerText => format!("MarkerText"),
                    MetaCommand::CuePoint => format!("CuePoint"),
@@ -149,9 +162,9 @@ impl MetaEvent {
     }
 
     /// Extract the next meta event from a reader
-    pub fn next_event(reader: &mut Reader) -> Result<MetaEvent, MetaError> {
+    pub fn next_event(reader: &mut Read) -> Result<MetaEvent, MetaError> {
         let command =
-            match FromPrimitive::from_u8(try!(reader.read_byte())) {
+            match MetaCommand::from_u8(try!(read_byte(reader))) {
                 Some(c) => {c},
                 None => MetaCommand::Unknown,
             };
@@ -159,7 +172,8 @@ impl MetaEvent {
             Ok(t) => { t }
             Err(_) => { return Err(MetaError::OtherErr("Couldn't read time for meta command")); }
         };
-        let data = try!(reader.read_exact(len as usize));
+        let mut data = Vec::new();
+        try!(read_amount(reader,&mut data,len as usize));
         Ok(MetaEvent{
             command: command,
             length: len,
@@ -177,7 +191,7 @@ impl MetaEvent {
     }
 
     fn u24_to_vec(val: u32) -> Vec<u8> {
-        assert!(val <= 2.pow(24));
+        assert!(val <= 2u32.pow(24));
         let mut res = Vec::with_capacity(3);
         res.push((val >> 16) as u8);
         res.push((val >> 8) as u8);

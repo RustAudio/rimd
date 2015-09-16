@@ -1,19 +1,18 @@
-#![feature(old_path)]
-
 extern crate rimd;
 
 use rimd::{SMF,SMFError};
 use std::env::{args,Args};
+use std::path::Path;
 
 fn main() {
     let mut args: Args = args();
     args.next();
     let pathstr = match args.next() {
         Some(s) => s,
-        None => { panic!("Please pass a path to a SMF to test") },
+        None => { panic!("Please pass a path to an SMF to test") },
     };
     println!("Reading: {}",pathstr);
-    match SMF::from_file(&Path::new(pathstr)) {
+    match SMF::from_file(&Path::new(&pathstr[..])) {
         Ok(smf) => {
             println!("format: {}",smf.format);
             println!("tracks: {}",smf.tracks.len());
@@ -32,8 +31,8 @@ fn main() {
         Err(e) => {
             match e {
                 SMFError::InvalidSMFFile(s) => {println!("{}",s);}
-                SMFError::IoError(e) => {println!("io: {}",e);}
-                SMFError::MidiError(_) => {println!("Midi Error");}
+                SMFError::Error(e) => {println!("io: {}",e);}
+                SMFError::MidiError(e) => {println!("Midi Error: {}",e);}
                 SMFError::MetaError(_) => {println!("Meta Error");}
             }
         }
