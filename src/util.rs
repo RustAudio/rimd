@@ -64,8 +64,8 @@ pub fn read_amount(reader: &mut Read, dest: &mut Vec<u8>, amt: usize) -> Result<
 
 #[test]
 fn test_note_num_to_name() {
-    assert_eq!(note_num_to_name(48)[..],"C3");
-    assert_eq!(note_num_to_name(49)[..],"C#3");
-    assert_eq!(note_num_to_name(65)[..],"F4");
-    assert_eq!(note_num_to_name(104)[..],"G#7");
+    assert_eq!(&note_num_to_name(48)[..],"C3");
+    assert_eq!(&note_num_to_name(49)[..],"C#3");
+    assert_eq!(&note_num_to_name(65)[..],"F4");
+    assert_eq!(&note_num_to_name(104)[..],"G#7");
 }
