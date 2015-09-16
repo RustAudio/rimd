@@ -37,3 +37,5 @@ to build simply do
 
     cargo build
 
+#License
+MIT (see LICENSE file)
