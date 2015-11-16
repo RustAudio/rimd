@@ -233,7 +233,7 @@ impl SMFBuilder {
     /// Panics if `track` is >= to the number of tracks in this
     /// builder, or if the track already has a copyright set.
     pub fn set_copyright(&mut self, track: usize, copyright: String) {
-        assert!(self.tracks.len() >= track);
+        assert!(self.tracks.len() > track);
         assert!(self.tracks[track].copyright.is_none());
         // let event = AbsoluteEvent {
         //     time: 0,
@@ -250,7 +250,7 @@ impl SMFBuilder {
     /// Panics if `track` is >= to the number of tracks in this
     /// builder, or if the track already has a name set.
     pub fn set_name(&mut self, track: usize, name: String) {
-        assert!(self.tracks.len() >= track);
+        assert!(self.tracks.len() > track);
         assert!(self.tracks[track].name.is_none());
         // let event = AbsoluteEvent{
         //     time: 0,
@@ -266,7 +266,7 @@ impl SMFBuilder {
     ///
     /// Panics if `track` is >= to the number of tracks in this builder
     pub fn add_midi_abs(&mut self, track: usize, time: u64, msg: MidiMessage) {
-        assert!(self.tracks.len() >= track);
+        assert!(self.tracks.len() > track);
         match self.tracks.index_mut(track).events {
             EventContainer::Heap(ref mut heap) => {
                 heap.push(AbsoluteEvent {
@@ -286,7 +286,7 @@ impl SMFBuilder {
     ///
     /// Panics if `track` is >= to the number of tracks in this builder
     pub fn add_midi_rel(&mut self, track: usize, delta: u64, msg: MidiMessage) {
-        assert!(self.tracks.len() >= track);
+        assert!(self.tracks.len() > track);
         let time = self.tracks[track].abs_time_from_delta(delta);
         self.add_midi_abs(track,time,msg);
     }
@@ -298,7 +298,7 @@ impl SMFBuilder {
     ///
     /// Panics if `track` is >= to the number of tracks in this builder
     pub fn add_meta_abs(&mut self, track: usize, time: u64, event: MetaEvent) {
-        assert!(self.tracks.len() >= track);
+        assert!(self.tracks.len() > track);
         match self.tracks.index_mut(track).events {
             EventContainer::Heap(ref mut heap) => {
                 heap.push(AbsoluteEvent {
@@ -318,7 +318,7 @@ impl SMFBuilder {
     ///
     /// Panics if `track` is >= to the number of tracks in this builder
     pub fn add_meta_rel(&mut self, track: usize, delta: u64, event: MetaEvent) {
-        assert!(self.tracks.len() >= track);
+        assert!(self.tracks.len() > track);
         let time = self.tracks[track].abs_time_from_delta(delta);
         self.add_meta_abs(track,time,event);
     }
@@ -331,7 +331,7 @@ impl SMFBuilder {
     ///
     /// Panics if `track` is >= to the number of tracks in this builder
     pub fn add_event(&mut self, track: usize, event: TrackEvent) {
-        assert!(self.tracks.len() >= track);
+        assert!(self.tracks.len() > track);
         let bevent = AbsoluteEvent {
             time: self.tracks[track].abs_time_from_delta(event.vtime),
             event: event.event,
