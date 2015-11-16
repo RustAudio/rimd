@@ -233,7 +233,7 @@ impl SMFBuilder {
     /// Panics if `track` is >= to the number of tracks in this
     /// builder, or if the track already has a copyright set.
     pub fn set_copyright(&mut self, track: usize, copyright: String) {
-        assert!(self.tracks.len() > track);
+        assert!(self.tracks.len() >= track);
         assert!(self.tracks[track].copyright.is_none());
         // let event = AbsoluteEvent {
         //     time: 0,
