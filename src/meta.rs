@@ -149,7 +149,7 @@ impl MetaEvent {
     /// Turn `bytes` bytes of the data of this event into a u64
     pub fn data_as_u64(&self,bytes: usize) -> u64 {
         let mut res = 0;
-        for i in (0..bytes) {
+        for i in 0..bytes {
             res <<= 8;
             res |= self.data[i] as u64;
         }

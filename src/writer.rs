@@ -140,7 +140,7 @@ impl SMFWriter {
         }
 
         // write in the length in the space we reserved
-        for i in (0..4) {
+        for i in 0..4 {
             let lbyte = (*length & 0xFF) as u8;
             // 7-i because smf is big endian and we want to put this in bytes 4-7
             vec[7-i] = lbyte;
