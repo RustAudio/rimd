@@ -15,8 +15,8 @@ use ::{Event,AbsoluteEvent,MetaEvent,MetaCommand,SMFFormat};
 /// ```
 /// use rimd::{SMF,SMFWriter};
 /// // Create smf
-/// // let writer = SMFWriter::from_smf(smf);
-/// // let result = writer.write_to_file(Path::new("/path/to/file.smf"));
+/// let writer = SMFWriter::from_smf(smf);
+/// let result = writer.write_to_file(Path::new("/path/to/file.smf"));
 /// // handle result
 pub struct SMFWriter {
     format: u16,

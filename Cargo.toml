@@ -5,6 +5,7 @@ version = "0.0.1"
 authors = ["Nick Lanham <nick@afternight.org>"]
 homepage = "https://github.com/RustAudio/rimd"
 repository = "https://github.com/RustAudio/rimd"
+documentation = "https://nicklan.github.io/rimd/target/doc/rimd/index.html"
 readme = "README.md"
 keywords = ["midi", "smf", "music", "audio", "mid"]
 license = "MIT"

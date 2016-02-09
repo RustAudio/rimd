@@ -7,6 +7,8 @@
 //! utility methods for accessing the various pieces of a message, and
 //! for constructing new messages.
 //!
+//! For example usage see the bin directory.
+//!
 //! For a description of the underlying format of midi messages see:<br/>
 //! http://www.midi.org/techspecs/midimessages.php<br/>
 //! For a description of the underlying format of meta messages see:<br/>
