@@ -141,22 +141,22 @@ impl TrackBuilder {
             copyright: self.copyright,
             name: self.name,
             events: match self.events {
-                EventContainer::Heap(mut heap) => {
-                    let mut events = Vec::new();
-                    events.reserve(heap.len());
-                    let mut cur_time: u64 = 0;
-                    loop {
-                        match heap.pop() {
-                            Some(bev) => {
-                                let vtime = bev.time - cur_time;
-                                cur_time = vtime;
-                                events.push(TrackEvent {
-                                    vtime: vtime,
-                                    event: bev.event,
-                                });
-                            }
-                            None => { break; }
-                        }
+                EventContainer::Heap(heap) => {
+                    let mut events = Vec::with_capacity(heap.len());
+                    let absevents = heap.into_sorted_vec();
+                    let mut prev_time = 0;
+                    for ev in absevents.into_iter() {
+                        let vtime =
+                            if prev_time == 0 {
+                                ev.time
+                            } else {
+                                ev.time - prev_time
+                            };
+                        prev_time = ev.time;
+                        events.push(TrackEvent {
+                            vtime: vtime,
+                            event: ev.event,
+                        });
                     }
                     events
                 },
@@ -353,4 +353,18 @@ impl SMFBuilder {
             division: 0,
         }
     }
+}
+
+#[test]
+fn simple_build() {
+    let note_on = MidiMessage::note_on(69,100,0);
+    let note_off = MidiMessage::note_off(69,100,0);
+
+
+    let mut builder = SMFBuilder::new();
+    builder.add_track();
+
+    builder.add_event(0, TrackEvent{vtime: 0, event: Event::Midi(note_on)});
+    builder.add_event(0, TrackEvent{vtime: 10, event: Event::Midi(note_off)});
+    builder.result();
 }
