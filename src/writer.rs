@@ -13,8 +13,12 @@ use ::{Event,AbsoluteEvent,MetaEvent,MetaCommand,SMFFormat};
 ///
 /// # Writing an existing SMF to a file
 /// ```
-/// use rimd::{SMF,SMFWriter};
+/// use rimd::{SMF,SMFWriter,SMFBuilder};
+/// use std::path::Path;
 /// // Create smf
+/// let mut builder = SMFBuilder::new();
+/// // add some events to builder
+/// let smf = builder.result();
 /// let writer = SMFWriter::from_smf(smf);
 /// let result = writer.write_to_file(Path::new("/path/to/file.smf"));
 /// // handle result
