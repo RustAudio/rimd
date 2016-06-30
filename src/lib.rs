@@ -116,7 +116,7 @@ impl Event {
 }
 
 /// An event occuring in the track.
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct TrackEvent {
     /// A delta offset, indicating how many ticks after the previous
     /// event this event occurs
