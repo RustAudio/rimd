@@ -17,6 +17,7 @@
 extern crate byteorder;
 #[macro_use] extern crate enum_primitive;
 extern crate num;
+extern crate encoding;
 
 use std::error;
 use std::convert::From;
@@ -146,7 +147,7 @@ impl TrackEvent {
 }
 
 /// A sequence of midi/meta events
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Track {
     /// Optional copyright notice
     pub copyright: Option<String>,
