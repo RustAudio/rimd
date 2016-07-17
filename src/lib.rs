@@ -65,7 +65,7 @@ mod writer;
 mod util;
 
 /// Format of the SMF
-#[derive(Debug,Clone,Copy)]
+#[derive(Debug,Clone,Copy,PartialEq)]
 pub enum SMFFormat {
     /// single track file format
     Single = 0,
@@ -248,7 +248,7 @@ impl fmt::Display for SMFError {
 }
 
 /// A standard midi file
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct SMF {
     /// The format of the SMF
     pub format: SMFFormat,
@@ -272,6 +272,59 @@ impl SMF {
     /// Read an SMF from the given reader
     pub fn from_reader(reader: &mut Read) -> Result<SMF,SMFError> {
         SMFReader::read_smf(reader)
+    }
+
+    /// Convert a type 0 (single track) to type 1 (multi track) SMF
+    /// Does nothing if the SMF is already in type 1
+    /// Returns None if the SMF is in type 2 (multi song)
+    pub fn to_multi_track(&self) -> Option<SMF> {
+        match self.format {
+            SMFFormat::MultiTrack => Some(self.clone()),
+            SMFFormat::MultiSong => None,
+            SMFFormat::Single => {
+                let mut out = SMF {
+                    format: SMFFormat::MultiTrack,
+                    tracks: vec![],
+                    division: self.division,
+                };
+                let mut track0 = Track {events: vec![], ..self.tracks[0].clone()};
+                let mut tracks = vec![Vec::<TrackEvent>::new(); 16];
+                let mut time = 0;
+                for event in &self.tracks[0].events {
+                    time += event.vtime;
+                    match event.event {
+                        Event::Midi(ref msg) if msg.channel().is_some() => {
+                            let mut events = &mut tracks[msg.channel().unwrap() as usize];
+                            events.push(TrackEvent {vtime: time, event: event.event.clone()});
+                        }
+                        /*MidiEvent::Meta(ref msg) if [
+                            MetaCommand::MIDIChannelPrefixAssignment, 
+                            MetaCommand::MIDIPortPrefixAssignment,
+                            MetaCommand::SequenceOrTrackName,
+                            MetaCommand::InstrumentName,
+                        ].contains(&msg.command) => {
+                            println!("prefix: {:?}", event);
+                        }*/
+                        _ => {
+                            track0.events.push(TrackEvent {vtime: time, event: event.event.clone()});
+                        }
+                    }
+                }
+                out.tracks.push(track0);
+                for events in &mut tracks {
+                    if events.len() > 0 {
+                        let mut time = 0;
+                        for event in events.iter_mut() {
+                            let tmp = event.vtime;
+                            event.vtime -= time;
+                            time = tmp;
+                        }
+                        out.tracks.push(Track {events: events.clone(), copyright: None, name: None});
+                    }
+                }
+                Some(out)
+            }
+        }
     }
 }
 

@@ -81,7 +81,7 @@ pub enum Status {
 /// Midi message building and parsing.  See
 /// http://www.midi.org/techspecs/midimessages.php for a description
 /// of the various Midi messages that exist.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct MidiMessage {
     pub data: Vec<u8>,
 }
@@ -104,22 +104,45 @@ impl MidiMessage {
     }
 
     /// Return the channel this message is on (TODO: return 0 for messages with no channel)
-    pub fn channel(&self) -> u8 {
-        (self.data[0] & CHANNEL_MASK) + 1
+    pub fn channel(&self) -> Option<u8> {
+        match self.status() {
+            Status::NoteOff |
+            Status::NoteOn |
+            Status::PolyphonicAftertouch |
+            Status::ControlChange |
+            Status::ProgramChange |
+            Status::ChannelAftertouch |
+            Status::PitchBend => Some(self.data[0] & CHANNEL_MASK),
+            Status::SysExStart |
+            Status::MIDITimeCodeQtrFrame |
+            Status::SongPositionPointer |
+            Status::SongSelect |
+            Status::TuneRequest |
+            Status::SysExEnd |
+            Status::TimingClock |
+            Status::Start |
+            Status::Continue |
+            Status::Stop |
+            Status::ActiveSensing |
+            Status::SystemReset => None
+        }
     }
 
     /// Get te data at index `index` from this message.  Status is at
     /// index 0
+    #[inline(always)]
     pub fn data(&self, index: usize) -> u8 {
         self.data[index]
     }
 
     // Or in the channel bits to a status
+    #[inline(always)]
     fn make_status(status: Status, channel: u8) -> u8 {
         status as u8 | channel
     }
 
     /// Create a midi message from a vector of bytes
+    #[inline(always)]
     pub fn from_bytes(bytes: Vec<u8>) -> MidiMessage{
         // TODO: Validate bytes
         MidiMessage {
@@ -305,13 +328,16 @@ impl fmt::Display for Status {
 impl fmt::Display for MidiMessage {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if self.data.len() == 2 {
-            write!(f, "{}: [{}]\tchannel: {}", self.status(),self.data[1],self.channel())
+            write!(f, "{}: [{}]\tchannel: {:?}", self.status(),self.data[1],self.channel())
         }
         else if self.data.len() == 3 {
-            write!(f, "{}: [{},{}]\tchannel: {}", self.status(),self.data[1],self.data[2],self.channel())
+            write!(f, "{}: [{},{}]\tchannel: {:?}", self.status(),self.data[1],self.data[2],self.channel())
+        }
+        else if self.data.len() == 0 {
+            write!(f, "{}: [no data]\tchannel: {:?}", self.status(),self.channel())
         }
         else {
-            write!(f, "{}: [no data]\tchannel: {}", self.status(),self.channel())
+            write!(f, "{}: {:?}\tchannel: {:?}", self.status(),self.data,self.channel())
         }
     }
 }
