@@ -14,6 +14,16 @@ impl SMFReader {
         let mut header:[u8;14] = [0;14];
         try!(fill_buf(reader,&mut header));
 
+        // skip RIFF header if present
+        if header[0] == 0x52 &&
+           header[1] == 0x49 &&
+           header[2] == 0x46 &&
+           header[3] == 0x46 {
+            let mut skip:[u8; 6] = [0; 6];
+            try!(fill_buf(reader, &mut skip));
+            try!(fill_buf(reader, &mut header));
+        }
+
         if header[0] != 0x4D ||
            header[1] != 0x54 ||
            header[2] != 0x68 ||
@@ -77,7 +87,7 @@ impl SMFReader {
         let mut name = None;
 
         try!(fill_buf(reader,&mut buf));
-        if buf[0] != 0x4D ||
+        if buf[0] != 0x4D || // "MTrk"
            buf[1] != 0x54 ||
            buf[2] != 0x72 ||
            buf[3] != 0x6B {
@@ -93,12 +103,15 @@ impl SMFReader {
         let mut read_so_far = 0;
 
         loop {
-            let last = match res.last() {
-                Some(e) => match e.event {
-                    Event::Midi(ref m) => { m.data[0] }
-                    _ => { 0u8 }
-                },
-                None => { 0u8 }
+            let last = { // use status from last midi event, skip meta events
+                let mut last = 0u8;
+                for e in res.iter().rev() {
+                    match e.event {
+                        Event::Midi(ref m) => { last = m.data[0]; break; }
+                        _ => ()
+                    }
+                }
+                last
             };
             let mut was_running = false;
             match SMFReader::next_event(reader,last,&mut was_running) {
@@ -122,8 +135,21 @@ impl SMFReader {
                     if read_so_far == len {
                         break;
                     }
+                    if read_so_far > len {
+                        return Err(SMFError::InvalidSMFFile("Invalid MIDI file"));
+                    }
                 },
                 Err(err) => {
+                    for e in &res[res.len()-10..] {
+                        match e.event {
+                            Event::Midi(MidiMessage {ref data}) | Event::Meta(MetaEvent {ref data, ..}) => {
+                                for b in data {
+                                    print!("{:02X}", b);
+                                }
+                            }
+                        }
+                        println!(": {:?} {}", e, e);
+                    }
                     if err.is_eof() { break; }
                     else { return Err(err); }
                 }

@@ -29,7 +29,11 @@ pub fn read_byte(reader: &mut Read) -> Result<u8,Error> {
 pub fn fill_buf(reader: &mut Read, buf: &mut [u8]) -> Result<(),Error> {
     let mut read = 0;
     while read < buf.len() {
-        read += try!(reader.read(&mut buf[read..]));
+        let bytes_read = try!(reader.read(&mut buf[read..]));
+        if bytes_read == 0 {
+            return Err(Error::new(ErrorKind::InvalidData, "file ends before it should"));
+        }
+        read += bytes_read;
     }
     Ok(())
 }
@@ -46,7 +50,7 @@ pub fn read_amount(reader: &mut Read, dest: &mut Vec<u8>, amt: usize) -> Result<
     while (len-start_len) < amt {
         match reader.read(&mut dest[len..]) {
             Ok(0) => {
-                // read 0 before amout
+                // read 0 before amount
                 ret = Err(Error::new(ErrorKind::InvalidData,
                                      "Stream ended before specified number of bytes could be read"));
             },
