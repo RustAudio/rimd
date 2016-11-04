@@ -328,16 +328,16 @@ impl fmt::Display for Status {
 impl fmt::Display for MidiMessage {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if self.data.len() == 2 {
-            write!(f, "{}: [{}]\tchannel: {:?}", self.status(),self.data[1],self.channel())
+            write!(f, "{}: [{}]\tchannel: {:?}", self.status(), self.data[1], self.channel())
         }
         else if self.data.len() == 3 {
-            write!(f, "{}: [{},{}]\tchannel: {:?}", self.status(),self.data[1],self.data[2],self.channel())
+            write!(f, "{}: [{},{}]\tchannel: {:?}", self.status(), self.data[1], self.data[2], self.channel())
         }
         else if self.data.len() == 0 {
-            write!(f, "{}: [no data]\tchannel: {:?}", self.status(),self.channel())
+            write!(f, "{}: [no data]\tchannel: {:?}", self.status(), self.channel())
         }
         else {
-            write!(f, "{}: {:?}\tchannel: {:?}", self.status(),self.data,self.channel())
+            write!(f, "{}: {:?}\tchannel: {:?}", self.status(), self.data, self.channel())
         }
     }
 }

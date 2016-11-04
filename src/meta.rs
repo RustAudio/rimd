@@ -101,7 +101,7 @@ impl fmt::Display for MetaEvent {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "Meta Event: {}",
                match self.command {
-                   MetaCommand::SequenceNumber => format!("Sequence Number"),
+                   MetaCommand::SequenceNumber => format!("Sequence Number: {}", ((self.data[0] as u16) << 8) | self.data[1] as u16),
                    MetaCommand::TextEvent => {
                        format!("Text Event. Len: {} Text: {}", self.length, latin1_decode(&self.data))
                    },
@@ -124,7 +124,7 @@ impl fmt::Display for MetaEvent {
                    MetaCommand::MIDIChannelPrefixAssignment => format!("MIDI Channel Prefix Assignment, channel: {}", self.data[0]+1),
                    MetaCommand::MIDIPortPrefixAssignment => format!("MIDI Port Prefix Assignment, port: {}", self.data[0]),
                    MetaCommand::EndOfTrack => format!("End Of Track"),
-                   MetaCommand::TempoSetting => format!("Set Tempo, microseconds/quarter note: {}",self.data_as_u64(3)),
+                   MetaCommand::TempoSetting => format!("Set Tempo, microseconds/quarter note: {}", self.data_as_u64(3)),
                    MetaCommand::SMPTEOffset => format!("SMPTEOffset"),
                    MetaCommand::TimeSignature => format!("Time Signature: {}/{}, {} ticks/metronome click, {} 32nd notes/quarter note",
                                                          self.data[0],
@@ -139,7 +139,7 @@ impl fmt::Display for MetaEvent {
                                                             _ => "Invalid Signature",
                                                         }),
                    MetaCommand::SequencerSpecificEvent => format!("SequencerSpecificEvent"),
-                   MetaCommand::Unknown => format!("Unknown, length: {}",self.data.len()),
+                   MetaCommand::Unknown => format!("Unknown, length: {}", self.data.len()),
                })
     }
 }
@@ -158,7 +158,7 @@ fn latin1_decode(s: &[u8]) -> String {
 impl MetaEvent {
 
     /// Turn `bytes` bytes of the data of this event into a u64
-    pub fn data_as_u64(&self,bytes: usize) -> u64 {
+    pub fn data_as_u64(&self, bytes: usize) -> u64 {
         let mut res = 0;
         for i in 0..bytes {
             res <<= 8;
