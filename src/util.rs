@@ -66,6 +66,19 @@ pub fn read_amount(reader: &mut Read, dest: &mut Vec<u8>, amt: usize) -> Result<
     ret
 }
 
+pub fn latin1_decode(s: &[u8]) -> String {
+    use encoding::{Encoding, DecoderTrap};
+    use encoding::all::ISO_8859_1;
+    use std::str;
+    match ISO_8859_1.decode(s, DecoderTrap::Replace) {
+        Ok(s) => s,
+        Err(_) => match str::from_utf8(s) {
+            Ok(s) => s.to_string(),
+            Err(_) => format!("[invalid string data]"),
+        }
+    }
+}
+
 #[test]
 fn test_note_num_to_name() {
     assert_eq!(&note_num_to_name(48)[..],"C3");

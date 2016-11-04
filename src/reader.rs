@@ -3,7 +3,7 @@ use std::io::Read;
 use SMF;
 use ::{Event,SMFError,SMFFormat,MetaCommand,MetaEvent,MidiMessage,Track,TrackEvent};
 
-use util::{fill_buf,read_byte};
+use util::{fill_buf, read_byte, latin1_decode};
 
 /// An SMFReader can parse a byte stream into an SMF
 #[derive(Clone,Copy)]
@@ -119,8 +119,8 @@ impl SMFReader {
                     match event.event {
                         Event::Meta(ref me) => {
                             match me.command {
-                                MetaCommand::CopyrightNotice => copyright = Some(try!(me.data_as_text())),
-                                MetaCommand::SequenceOrTrackName => name = Some(try!(me.data_as_text())),
+                                MetaCommand::CopyrightNotice => copyright = Some(latin1_decode(&me.data)),
+                                MetaCommand::SequenceOrTrackName => name = Some(latin1_decode(&me.data)),
                                 _ => {}
                             }
                         },

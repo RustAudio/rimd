@@ -1,16 +1,12 @@
 use std::error;
-use std::io::{Error,Read};
+use std::io::{Error, Read};
 use std::fmt;
-use std::string::FromUtf8Error;
 
 use reader::SMFReader;
 
 use num::FromPrimitive;
 
-use util::{read_byte,read_amount};
-
-use encoding::{Encoding, DecoderTrap};
-use encoding::all::ISO_8859_1;
+use util::{read_byte, read_amount, latin1_decode};
 
 /// An error that can occur parsing a meta command
 #[derive(Debug)]
@@ -144,17 +140,6 @@ impl fmt::Display for MetaEvent {
     }
 }
 
-fn latin1_decode(s: &[u8]) -> String {
-    use std::str;
-    match ISO_8859_1.decode(s, DecoderTrap::Replace) {
-        Ok(s) => s,
-        Err(_) => match str::from_utf8(s) {
-            Ok(s) => s.to_string(),
-            Err(_) => format!("[invalid string data]"),
-        }
-    }
-}
-
 impl MetaEvent {
 
     /// Turn `bytes` bytes of the data of this event into a u64
@@ -165,12 +150,6 @@ impl MetaEvent {
             res |= self.data[i] as u64;
         }
         res
-    }
-
-    /// Parse the data of this event into a utf8 string
-    pub fn data_as_text(&self) -> Result<String,FromUtf8Error> {
-        //String::from_utf8(self.data.clone())
-        Ok(latin1_decode(&self.data))
     }
 
     /// Extract the next meta event from a reader
