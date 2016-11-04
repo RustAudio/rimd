@@ -181,17 +181,6 @@ pub enum SMFError {
     Error(Error),
 }
 
-impl SMFError {
-    fn is_eof(&self) -> bool {
-        match *self {
-            // SMFError::Error(ref err) => {
-            //     err.kind() == ErrorKind::EndOfFile
-            // }
-            _ => false
-        }
-    }
-}
-
 impl From<Error> for SMFError {
     fn from(err: Error) -> SMFError {
         SMFError::Error(err)

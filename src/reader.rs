@@ -140,6 +140,7 @@ impl SMFReader {
                     }
                 },
                 Err(err) => {
+                    /* // uncomment for debugging to print the last parsed events
                     for e in &res[res.len()-10..] {
                         match e.event {
                             Event::Midi(MidiMessage {ref data}) | Event::Meta(MetaEvent {ref data, ..}) => {
@@ -149,9 +150,8 @@ impl SMFReader {
                             }
                         }
                         println!(": {:?} {}", e, e);
-                    }
-                    if err.is_eof() { break; }
-                    else { return Err(err); }
+                    }*/
+                    return Err(err);
                 }
             }
         }
