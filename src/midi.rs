@@ -154,7 +154,7 @@ impl MidiMessage {
     // -1 -> variable sized message, call get_variable_size
     // -2 -> sysex, read until SysExEnd
     // -3 -> invalid status
-    fn data_bytes(status: u8) -> isize {
+    pub fn data_bytes(status: u8) -> isize {
         match Status::from_u8(status & STATUS_MASK) {
             Some(stat) => {
                 match stat {
