@@ -271,19 +271,13 @@ impl SMF {
             SMFFormat::MultiTrack => Some(self.clone()),
             SMFFormat::MultiSong => None,
             SMFFormat::Single => {
-                let mut out = SMF {
-                    format: SMFFormat::MultiTrack,
-                    tracks: vec![],
-                    division: self.division,
-                };
-                let mut track0 = Track {events: vec![], ..self.tracks[0].clone()};
-                let mut tracks = vec![Vec::<TrackEvent>::new(); 16];
+                let mut tracks = vec![Vec::<TrackEvent>::new(); 1 + 16]; // meta track and 16 for the 16 channels
                 let mut time = 0;
                 for event in &self.tracks[0].events {
                     time += event.vtime;
                     match event.event {
                         Event::Midi(ref msg) if msg.channel().is_some() => {
-                            let mut events = &mut tracks[msg.channel().unwrap() as usize];
+                            let mut events = &mut tracks[msg.channel().unwrap() as usize + 1];
                             events.push(TrackEvent {vtime: time, event: event.event.clone()});
                         }
                         /*MidiEvent::Meta(ref msg) if [
@@ -295,11 +289,15 @@ impl SMF {
                             println!("prefix: {:?}", event);
                         }*/
                         _ => {
-                            track0.events.push(TrackEvent {vtime: time, event: event.event.clone()});
+                            tracks[0].push(TrackEvent {vtime: time, event: event.event.clone()});
                         }
                     }
                 }
-                out.tracks.push(track0);
+                let mut out = SMF {
+                    format: SMFFormat::MultiTrack,
+                    tracks: vec![],
+                    division: self.division,
+                };
                 for events in &mut tracks {
                     if events.len() > 0 {
                         let mut time = 0;
@@ -311,6 +309,8 @@ impl SMF {
                         out.tracks.push(Track {events: events.clone(), copyright: None, name: None});
                     }
                 }
+                out.tracks[0].name = self.tracks[0].name.clone();
+                out.tracks[0].copyright = self.tracks[0].copyright.clone();
                 Some(out)
             }
         }
