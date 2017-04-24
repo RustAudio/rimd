@@ -17,6 +17,7 @@
 extern crate byteorder;
 #[macro_use] extern crate enum_primitive;
 extern crate num;
+extern crate encoding;
 
 use std::error;
 use std::convert::From;
@@ -64,7 +65,7 @@ mod writer;
 mod util;
 
 /// Format of the SMF
-#[derive(Debug,Clone,Copy)]
+#[derive(Debug,Clone,Copy,PartialEq)]
 pub enum SMFFormat {
     /// single track file format
     Single = 0,
@@ -116,7 +117,7 @@ impl Event {
 }
 
 /// An event occuring in the track.
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct TrackEvent {
     /// A delta offset, indicating how many ticks after the previous
     /// event this event occurs
@@ -146,7 +147,7 @@ impl TrackEvent {
 }
 
 /// A sequence of midi/meta events
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Track {
     /// Optional copyright notice
     pub copyright: Option<String>,
@@ -178,17 +179,6 @@ pub enum SMFError {
     MidiError(MidiError),
     MetaError(MetaError),
     Error(Error),
-}
-
-impl SMFError {
-    fn is_eof(&self) -> bool {
-        match *self {
-            // SMFError::Error(ref err) => {
-            //     err.kind() == ErrorKind::EndOfFile
-            // }
-            _ => false
-        }
-    }
 }
 
 impl From<Error> for SMFError {
@@ -247,7 +237,7 @@ impl fmt::Display for SMFError {
 }
 
 /// A standard midi file
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct SMF {
     /// The format of the SMF
     pub format: SMFFormat,
@@ -271,6 +261,59 @@ impl SMF {
     /// Read an SMF from the given reader
     pub fn from_reader(reader: &mut Read) -> Result<SMF,SMFError> {
         SMFReader::read_smf(reader)
+    }
+
+    /// Convert a type 0 (single track) to type 1 (multi track) SMF
+    /// Does nothing if the SMF is already in type 1
+    /// Returns None if the SMF is in type 2 (multi song)
+    pub fn to_multi_track(&self) -> Option<SMF> {
+        match self.format {
+            SMFFormat::MultiTrack => Some(self.clone()),
+            SMFFormat::MultiSong => None,
+            SMFFormat::Single => {
+                let mut tracks = vec![Vec::<TrackEvent>::new(); 1 + 16]; // meta track and 16 for the 16 channels
+                let mut time = 0;
+                for event in &self.tracks[0].events {
+                    time += event.vtime;
+                    match event.event {
+                        Event::Midi(ref msg) if msg.channel().is_some() => {
+                            let mut events = &mut tracks[msg.channel().unwrap() as usize + 1];
+                            events.push(TrackEvent {vtime: time, event: event.event.clone()});
+                        }
+                        /*MidiEvent::Meta(ref msg) if [
+                            MetaCommand::MIDIChannelPrefixAssignment, 
+                            MetaCommand::MIDIPortPrefixAssignment,
+                            MetaCommand::SequenceOrTrackName,
+                            MetaCommand::InstrumentName,
+                        ].contains(&msg.command) => {
+                            println!("prefix: {:?}", event);
+                        }*/
+                        _ => {
+                            tracks[0].push(TrackEvent {vtime: time, event: event.event.clone()});
+                        }
+                    }
+                }
+                let mut out = SMF {
+                    format: SMFFormat::MultiTrack,
+                    tracks: vec![],
+                    division: self.division,
+                };
+                for events in &mut tracks {
+                    if events.len() > 0 {
+                        let mut time = 0;
+                        for event in events.iter_mut() {
+                            let tmp = event.vtime;
+                            event.vtime -= time;
+                            time = tmp;
+                        }
+                        out.tracks.push(Track {events: events.clone(), copyright: None, name: None});
+                    }
+                }
+                out.tracks[0].name = self.tracks[0].name.clone();
+                out.tracks[0].copyright = self.tracks[0].copyright.clone();
+                Some(out)
+            }
+        }
     }
 }
 

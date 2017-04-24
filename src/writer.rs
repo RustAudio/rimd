@@ -55,16 +55,15 @@ impl SMFWriter {
         let mut writer = SMFWriter::new_with_division_and_format
             (smf.format, smf.division);
 
-        let mut length = 0;
-        let mut saw_eot = false;
-
         for track in smf.tracks.iter() {
+            let mut length = 0;
+            let mut saw_eot = false;
             let mut vec = Vec::new();
             writer.start_track_header(&mut vec);
 
             for event in track.events.iter() {
-                length += SMFWriter::write_vtime(event.vtime as u64,&mut vec).unwrap(); // TODO: Handle error
-                writer.write_event(&mut vec, &(event.event) , &mut length, &mut saw_eot);
+                length += SMFWriter::write_vtime(event.vtime as u64, &mut vec).unwrap(); // TODO: Handle error
+                writer.write_event(&mut vec, &(event.event), &mut length, &mut saw_eot);
             }
 
             writer.finish_track_write(&mut vec, &mut length, saw_eot);

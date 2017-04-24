@@ -1,13 +1,12 @@
 use std::error;
-use std::io::{Error,Read};
+use std::io::{Error, Read};
 use std::fmt;
-use std::string::FromUtf8Error;
 
 use reader::SMFReader;
 
 use num::FromPrimitive;
 
-use util::{read_byte,read_amount};
+use util::{read_byte, read_amount, latin1_decode};
 
 /// An error that can occur parsing a meta command
 #[derive(Debug)]
@@ -98,32 +97,30 @@ impl fmt::Display for MetaEvent {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "Meta Event: {}",
                match self.command {
-                   MetaCommand::SequenceNumber => format!("Sequence Number"),
+                   MetaCommand::SequenceNumber => format!("Sequence Number: {}", ((self.data[0] as u16) << 8) | self.data[1] as u16),
                    MetaCommand::TextEvent => {
-                       format!("Text Event.  Len: {} Text: Foo",self.length)
+                       format!("Text Event. Len: {} Text: {}", self.length, latin1_decode(&self.data))
                    },
-                   MetaCommand::CopyrightNotice => format!("Copyright Notice"),
+                   MetaCommand::CopyrightNotice => {
+                       format!("Copyright Notice: {}", latin1_decode(&self.data))
+                   },
                    MetaCommand::SequenceOrTrackName => {
-                       let text = match String::from_utf8(self.data.clone()) {
-                           Ok(s) => s,
-                           Err(_) => format!("[invalid string data]"),
-                       };
-                       format!("Sequence/Track Name, length: {}, name: {}",self.length,text)
+                       format!("Sequence/Track Name, length: {}, name: {}", self.length, latin1_decode(&self.data))
                    },
                    MetaCommand::InstrumentName => {
-                       let text = match String::from_utf8(self.data.clone()) {
-                           Ok(s) => s,
-                           Err(_) => format!("[invalid string data]"),
-                       };
-                       format!("InstrumentName: {}",text)
+                       format!("InstrumentName: {}", latin1_decode(&self.data))
                    },
-                   MetaCommand::LyricText => format!("LyricText"),
-                   MetaCommand::MarkerText => format!("MarkerText"),
-                   MetaCommand::CuePoint => format!("CuePoint"),
+                   MetaCommand::LyricText => {
+                       format!("LyricText: {}", latin1_decode(&self.data))
+                   }
+                   MetaCommand::MarkerText => {
+                       format!("MarkerText: {}", latin1_decode(&self.data))
+                   }
+                   MetaCommand::CuePoint => format!("CuePoint: {}", latin1_decode(&self.data)),
                    MetaCommand::MIDIChannelPrefixAssignment => format!("MIDI Channel Prefix Assignment, channel: {}", self.data[0]+1),
                    MetaCommand::MIDIPortPrefixAssignment => format!("MIDI Port Prefix Assignment, port: {}", self.data[0]),
                    MetaCommand::EndOfTrack => format!("End Of Track"),
-                   MetaCommand::TempoSetting => format!("Set Tempo, microseconds/quarter note: {}",self.data_as_u64(3)),
+                   MetaCommand::TempoSetting => format!("Set Tempo, microseconds/quarter note: {}", self.data_as_u64(3)),
                    MetaCommand::SMPTEOffset => format!("SMPTEOffset"),
                    MetaCommand::TimeSignature => format!("Time Signature: {}/{}, {} ticks/metronome click, {} 32nd notes/quarter note",
                                                          self.data[0],
@@ -138,27 +135,21 @@ impl fmt::Display for MetaEvent {
                                                             _ => "Invalid Signature",
                                                         }),
                    MetaCommand::SequencerSpecificEvent => format!("SequencerSpecificEvent"),
-                   MetaCommand::Unknown => format!("Unknown, length: {}",self.data.len()),
+                   MetaCommand::Unknown => format!("Unknown, length: {}", self.data.len()),
                })
     }
 }
 
-
 impl MetaEvent {
 
     /// Turn `bytes` bytes of the data of this event into a u64
-    pub fn data_as_u64(&self,bytes: usize) -> u64 {
+    pub fn data_as_u64(&self, bytes: usize) -> u64 {
         let mut res = 0;
         for i in 0..bytes {
             res <<= 8;
             res |= self.data[i] as u64;
         }
         res
-    }
-
-    /// Parse the data of this event into a utf8 string
-    pub fn data_as_text(&self) -> Result<String,FromUtf8Error> {
-        String::from_utf8(self.data.clone())
     }
 
     /// Extract the next meta event from a reader
