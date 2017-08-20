@@ -221,7 +221,7 @@ impl MidiMessage {
             1 => { } // already read it
             2 => { ret.push(try!(read_byte(reader))); } // only need one more byte
             -1 => { return Err(MidiError::OtherErr("Don't handle variable sized yet")); }
-            -2 => { return Err(MidiError::OtherErr("Don't handle sysex yet")); }
+            -2 => { return Err(MidiError::OtherErr("Running status not permitted with meta and sysex event")); }
             _ =>  { return Err(MidiError::InvalidStatus(stat)); }
         }
         Ok(MidiMessage{data: ret})
