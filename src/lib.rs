@@ -34,6 +34,7 @@ pub use midi:: {
     MidiMessage,
     STATUS_MASK,
     CHANNEL_MASK,
+    make_status,
 };
 
 pub use meta:: {

@@ -97,6 +97,12 @@ impl Clone for MidiMessage {
 pub const STATUS_MASK: u8 = 0xF0;
 pub const CHANNEL_MASK: u8 = 0x0F;
 
+// Or in the channel bits to a status
+#[inline(always)]
+pub fn make_status(status: Status, channel: u8) -> u8 {
+    status as u8 | channel
+}
+
 impl MidiMessage {
     /// Return the status (type) of this message
     pub fn status(&self) -> Status {
@@ -133,12 +139,6 @@ impl MidiMessage {
     #[inline(always)]
     pub fn data(&self, index: usize) -> u8 {
         self.data[index]
-    }
-
-    // Or in the channel bits to a status
-    #[inline(always)]
-    fn make_status(status: Status, channel: u8) -> u8 {
-        status as u8 | channel
     }
 
     /// Create a midi message from a vector of bytes
@@ -239,14 +239,14 @@ impl MidiMessage {
     /// Create a note on message
     pub fn note_on(note: u8, velocity: u8, channel: u8) -> MidiMessage {
         MidiMessage {
-            data: vec![MidiMessage::make_status(Status::NoteOn,channel), note, velocity],
+            data: vec![make_status(Status::NoteOn,channel), note, velocity],
         }
     }
 
     /// Create a note off message
     pub fn note_off(note: u8, velocity: u8, channel: u8) -> MidiMessage {
         MidiMessage {
-            data: vec![MidiMessage::make_status(Status::NoteOff,channel), note, velocity],
+            data: vec![make_status(Status::NoteOff,channel), note, velocity],
         }
     }
 
@@ -254,7 +254,7 @@ impl MidiMessage {
     /// This message is most often sent by pressing down on the key after it "bottoms out".
     pub fn polyphonic_aftertouch(note: u8, pressure: u8, channel: u8) -> MidiMessage {
         MidiMessage {
-            data: vec![MidiMessage::make_status(Status::PolyphonicAftertouch,channel), note, pressure],
+            data: vec![make_status(Status::PolyphonicAftertouch,channel), note, pressure],
         }
     }
 
@@ -263,7 +263,7 @@ impl MidiMessage {
     /// pedals and levers. Controller numbers 120-127 are reserved as "Channel Mode Messages".
     pub fn control_change(controler: u8, data: u8, channel: u8) -> MidiMessage {
         MidiMessage {
-            data: vec![MidiMessage::make_status(Status::ControlChange,channel), controler, data],
+            data: vec![make_status(Status::ControlChange,channel), controler, data],
         }
     }
 
@@ -271,7 +271,7 @@ impl MidiMessage {
     /// This message sent when the patch number changes. `program` is the new program number.
     pub fn program_change(program: u8, channel: u8) -> MidiMessage {
         MidiMessage {
-            data: vec![MidiMessage::make_status(Status::ProgramChange,channel), program],
+            data: vec![make_status(Status::ProgramChange,channel), program],
         }
     }
 
@@ -281,7 +281,7 @@ impl MidiMessage {
     /// value (of all the current depressed keys). `pressure` is the pressure value.
     pub fn channel_aftertouch(pressure: u8, channel: u8) -> MidiMessage {
         MidiMessage {
-            data: vec![MidiMessage::make_status(Status::ChannelAftertouch,channel), pressure],
+            data: vec![make_status(Status::ChannelAftertouch,channel), pressure],
         }
     }
 
@@ -292,7 +292,7 @@ impl MidiMessage {
     /// `msb` are the most significant 7 bits.
     pub fn pitch_bend(lsb: u8, msb: u8, channel: u8) -> MidiMessage {
         MidiMessage {
-            data: vec![MidiMessage::make_status(Status::PitchBend,channel), lsb, msb],
+            data: vec![make_status(Status::PitchBend,channel), lsb, msb],
         }
     }
 
