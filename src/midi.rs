@@ -94,8 +94,8 @@ impl Clone for MidiMessage {
     }
 }
 
-static STATUS_MASK: u8 = 0xF0;
-static CHANNEL_MASK: u8 = 0x0F;
+pub const STATUS_MASK: u8 = 0xF0;
+pub const CHANNEL_MASK: u8 = 0x0F;
 
 impl MidiMessage {
     /// Return the status (type) of this message

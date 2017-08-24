@@ -32,6 +32,8 @@ pub use midi:: {
     Status,
     MidiError,
     MidiMessage,
+    STATUS_MASK,
+    CHANNEL_MASK,
 };
 
 pub use meta:: {
@@ -277,11 +279,11 @@ impl SMF {
                     time += event.vtime;
                     match event.event {
                         Event::Midi(ref msg) if msg.channel().is_some() => {
-                            let mut events = &mut tracks[msg.channel().unwrap() as usize + 1];
+                            let events = &mut tracks[msg.channel().unwrap() as usize + 1];
                             events.push(TrackEvent {vtime: time, event: event.event.clone()});
                         }
                         /*MidiEvent::Meta(ref msg) if [
-                            MetaCommand::MIDIChannelPrefixAssignment, 
+                            MetaCommand::MIDIChannelPrefixAssignment,
                             MetaCommand::MIDIPortPrefixAssignment,
                             MetaCommand::SequenceOrTrackName,
                             MetaCommand::InstrumentName,
