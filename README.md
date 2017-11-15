@@ -9,13 +9,10 @@ their underlying format (i.e. a vector of `u8`s).  There are some
 utility methods for accessing the various pieces of a message, and
 for constructing new messages.
 
-For a description of the underlying format of midi messages see [here]
-(http://www.midi.org/techspecs/midimessages.php)
-For a description of the underlying format of meta messages see [here]
-(http://cs.fit.edu/~ryan/cse4051/projects/midi/midi.html#meta_event)
+For a description of the underlying format of midi messages see [here](http://www.midi.org/techspecs/midimessages.php)
+For a description of the underlying format of meta messages see [here](http://cs.fit.edu/~ryan/cse4051/projects/midi/midi.html#meta_event)
 
-
-# Docs
+## Docs
 
 Most public functions have docs in the source.  To build the docs do
 
@@ -23,7 +20,8 @@ Most public functions have docs in the source.  To build the docs do
 
 and then point your browser at /path/to/rimd/target/doc/rimd/index.html
 
-# Installation
+## Installation
+
 Use [Cargo](http://doc.crates.io/) and add the following to your Cargo.toml
 
 ```
@@ -31,11 +29,12 @@ Use [Cargo](http://doc.crates.io/) and add the following to your Cargo.toml
 git = "https://github.com/nicklan/rimd.git"
 ```
 
+## Building
 
-#Building
-to build simply do
+To build simply do
 
     cargo build
 
-#License
+## License
+
 MIT (see LICENSE file)
