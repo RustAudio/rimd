@@ -26,7 +26,7 @@ Use [Cargo](http://doc.crates.io/) and add the following to your Cargo.toml
 
 ```
 [dependencies.rimd]
-git = "https://github.com/nicklan/rimd.git"
+git = "https://github.com/RustAudio/rimd.git"
 ```
 
 ## Building
