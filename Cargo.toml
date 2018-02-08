@@ -13,5 +13,8 @@ license = "MIT"
 [dependencies]
 byteorder = "0.4.2"
 enum_primitive = "0.1.0"
-num = "0.1.27"
 encoding = "0.2.*"
+
+[dependencies.num]
+version = "0.1.27"
+default-features = false
