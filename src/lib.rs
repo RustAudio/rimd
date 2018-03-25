@@ -15,9 +15,9 @@
 //! http://cs.fit.edu/~ryan/cse4051/projects/midi/midi.html#meta_event
 
 extern crate byteorder;
-#[macro_use] extern crate enum_primitive;
-extern crate num;
 extern crate encoding;
+extern crate num_traits;
+#[macro_use] extern crate num_derive;
 
 use std::error;
 use std::convert::From;

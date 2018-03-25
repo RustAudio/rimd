@@ -3,7 +3,7 @@ use std::fmt;
 use std::convert::From;
 use std::io::{Error,Read};
 
-use num::FromPrimitive;
+use num_traits::FromPrimitive;
 
 use util::read_byte;
 
@@ -50,8 +50,7 @@ impl fmt::Display for MidiError {
 
 /// The status field of a midi message indicates what midi command it
 /// represents and what channel it is on
-enum_from_primitive! {
-#[derive(Debug,PartialEq,Clone,Copy)]
+#[derive(Debug, PartialEq, Clone, Copy, FromPrimitive)]
 pub enum Status {
     // voice
     NoteOff = 0x80,
@@ -75,7 +74,6 @@ pub enum Status {
     Stop = 0xFC,
     ActiveSensing = 0xFE, // FD also res/unused
     SystemReset = 0xFF,
-}
 }
 
 /// Midi message building and parsing.  See
