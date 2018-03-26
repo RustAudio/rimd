@@ -3,7 +3,7 @@ use std::fmt;
 use std::convert::From;
 use std::io::{Error,Read};
 
-use num::FromPrimitive;
+use num_traits::FromPrimitive;
 
 use util::read_byte;
 
@@ -50,8 +50,7 @@ impl fmt::Display for MidiError {
 
 /// The status field of a midi message indicates what midi command it
 /// represents and what channel it is on
-enum_from_primitive! {
-#[derive(Debug,PartialEq,Clone,Copy)]
+#[derive(Debug, PartialEq, Clone, Copy, FromPrimitive)]
 pub enum Status {
     // voice
     NoteOff = 0x80,
@@ -76,7 +75,6 @@ pub enum Status {
     ActiveSensing = 0xFE, // FD also res/unused
     SystemReset = 0xFF,
 }
-}
 
 /// Midi message building and parsing.  See
 /// http://www.midi.org/techspecs/midimessages.php for a description
@@ -94,8 +92,14 @@ impl Clone for MidiMessage {
     }
 }
 
-static STATUS_MASK: u8 = 0xF0;
-static CHANNEL_MASK: u8 = 0x0F;
+pub const STATUS_MASK: u8 = 0xF0;
+pub const CHANNEL_MASK: u8 = 0x0F;
+
+// Or in the channel bits to a status
+#[inline(always)]
+pub fn make_status(status: Status, channel: u8) -> u8 {
+    status as u8 | channel
+}
 
 impl MidiMessage {
     /// Return the status (type) of this message
@@ -133,12 +137,6 @@ impl MidiMessage {
     #[inline(always)]
     pub fn data(&self, index: usize) -> u8 {
         self.data[index]
-    }
-
-    // Or in the channel bits to a status
-    #[inline(always)]
-    fn make_status(status: Status, channel: u8) -> u8 {
-        status as u8 | channel
     }
 
     /// Create a midi message from a vector of bytes
@@ -221,7 +219,7 @@ impl MidiMessage {
             1 => { } // already read it
             2 => { ret.push(try!(read_byte(reader))); } // only need one more byte
             -1 => { return Err(MidiError::OtherErr("Don't handle variable sized yet")); }
-            -2 => { return Err(MidiError::OtherErr("Don't handle sysex yet")); }
+            -2 => { return Err(MidiError::OtherErr("Running status not permitted with meta and sysex event")); }
             _ =>  { return Err(MidiError::InvalidStatus(stat)); }
         }
         Ok(MidiMessage{data: ret})
@@ -239,14 +237,14 @@ impl MidiMessage {
     /// Create a note on message
     pub fn note_on(note: u8, velocity: u8, channel: u8) -> MidiMessage {
         MidiMessage {
-            data: vec![MidiMessage::make_status(Status::NoteOn,channel), note, velocity],
+            data: vec![make_status(Status::NoteOn,channel), note, velocity],
         }
     }
 
     /// Create a note off message
     pub fn note_off(note: u8, velocity: u8, channel: u8) -> MidiMessage {
         MidiMessage {
-            data: vec![MidiMessage::make_status(Status::NoteOff,channel), note, velocity],
+            data: vec![make_status(Status::NoteOff,channel), note, velocity],
         }
     }
 
@@ -254,7 +252,7 @@ impl MidiMessage {
     /// This message is most often sent by pressing down on the key after it "bottoms out".
     pub fn polyphonic_aftertouch(note: u8, pressure: u8, channel: u8) -> MidiMessage {
         MidiMessage {
-            data: vec![MidiMessage::make_status(Status::PolyphonicAftertouch,channel), note, pressure],
+            data: vec![make_status(Status::PolyphonicAftertouch,channel), note, pressure],
         }
     }
 
@@ -263,7 +261,7 @@ impl MidiMessage {
     /// pedals and levers. Controller numbers 120-127 are reserved as "Channel Mode Messages".
     pub fn control_change(controler: u8, data: u8, channel: u8) -> MidiMessage {
         MidiMessage {
-            data: vec![MidiMessage::make_status(Status::ControlChange,channel), controler, data],
+            data: vec![make_status(Status::ControlChange,channel), controler, data],
         }
     }
 
@@ -271,7 +269,7 @@ impl MidiMessage {
     /// This message sent when the patch number changes. `program` is the new program number.
     pub fn program_change(program: u8, channel: u8) -> MidiMessage {
         MidiMessage {
-            data: vec![MidiMessage::make_status(Status::ProgramChange,channel), program],
+            data: vec![make_status(Status::ProgramChange,channel), program],
         }
     }
 
@@ -281,7 +279,7 @@ impl MidiMessage {
     /// value (of all the current depressed keys). `pressure` is the pressure value.
     pub fn channel_aftertouch(pressure: u8, channel: u8) -> MidiMessage {
         MidiMessage {
-            data: vec![MidiMessage::make_status(Status::ChannelAftertouch,channel), pressure],
+            data: vec![make_status(Status::ChannelAftertouch,channel), pressure],
         }
     }
 
@@ -292,7 +290,7 @@ impl MidiMessage {
     /// `msb` are the most significant 7 bits.
     pub fn pitch_bend(lsb: u8, msb: u8, channel: u8) -> MidiMessage {
         MidiMessage {
-            data: vec![MidiMessage::make_status(Status::PitchBend,channel), lsb, msb],
+            data: vec![make_status(Status::PitchBend,channel), lsb, msb],
         }
     }
 

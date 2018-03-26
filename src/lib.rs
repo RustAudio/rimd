@@ -15,9 +15,9 @@
 //! http://cs.fit.edu/~ryan/cse4051/projects/midi/midi.html#meta_event
 
 extern crate byteorder;
-#[macro_use] extern crate enum_primitive;
-extern crate num;
 extern crate encoding;
+extern crate num_traits;
+#[macro_use] extern crate num_derive;
 
 use std::error;
 use std::convert::From;
@@ -32,6 +32,9 @@ pub use midi:: {
     Status,
     MidiError,
     MidiMessage,
+    STATUS_MASK,
+    CHANNEL_MASK,
+    make_status,
 };
 
 pub use meta:: {
@@ -277,11 +280,11 @@ impl SMF {
                     time += event.vtime;
                     match event.event {
                         Event::Midi(ref msg) if msg.channel().is_some() => {
-                            let mut events = &mut tracks[msg.channel().unwrap() as usize + 1];
+                            let events = &mut tracks[msg.channel().unwrap() as usize + 1];
                             events.push(TrackEvent {vtime: time, event: event.event.clone()});
                         }
                         /*MidiEvent::Meta(ref msg) if [
-                            MetaCommand::MIDIChannelPrefixAssignment, 
+                            MetaCommand::MIDIChannelPrefixAssignment,
                             MetaCommand::MIDIPortPrefixAssignment,
                             MetaCommand::SequenceOrTrackName,
                             MetaCommand::InstrumentName,

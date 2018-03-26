@@ -4,7 +4,7 @@ use std::fmt;
 
 use reader::SMFReader;
 
-use num::FromPrimitive;
+use num_traits::FromPrimitive;
 
 use util::{read_byte, read_amount, latin1_decode};
 
@@ -50,8 +50,7 @@ impl fmt::Display for MetaError {
 }
 
 /// Commands that meta messages can represent
-enum_from_primitive! {
-#[derive(Clone,Copy,Debug,PartialEq,Eq,PartialOrd,Ord)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd,Ord,  FromPrimitive)]
 pub enum MetaCommand {
     SequenceNumber = 0x00,
     TextEvent = 0x01,
@@ -70,7 +69,6 @@ pub enum MetaCommand {
     KeySignature = 0x59,
     SequencerSpecificEvent = 0x7F,
     Unknown,
-}
 }
 
 /// Meta event building and parsing.  See
