@@ -10,7 +10,7 @@ utility methods for accessing the various pieces of a message, and
 for constructing new messages.
 
 For a description of the underlying format of midi messages see [here](http://www.midi.org/techspecs/midimessages.php)
-For a description of the underlying format of meta messages see [here](http://cs.fit.edu/~ryan/cse4051/projects/midi/midi.html#meta_event)
+For a description of the underlying format of meta messages see [here](https://web.archive.org/web/20150217154504/http://cs.fit.edu/~ryan/cse4051/projects/midi/midi.html#meta_event)
 
 ## Docs
 
