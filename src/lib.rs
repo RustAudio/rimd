@@ -218,11 +218,11 @@ impl error::Error for SMFError {
         }
     }
 
-    fn cause(&self) -> Option<&error::Error> {
+    fn cause(&self) -> Option<&dyn error::Error> {
         match *self {
-            SMFError::MidiError(ref m) => Some(m as &error::Error),
-            SMFError::MetaError(ref m) => Some(m as &error::Error),
-            SMFError::Error(ref err) => Some(err as &error::Error),
+            SMFError::MidiError(ref m) => Some(m as &dyn error::Error),
+            SMFError::MetaError(ref m) => Some(m as &dyn error::Error),
+            SMFError::Error(ref err) => Some(err as &dyn error::Error),
             _ => None,
         }
     }
@@ -262,7 +262,7 @@ impl SMF {
     }
 
     /// Read an SMF from the given reader
-    pub fn from_reader(reader: &mut Read) -> Result<SMF,SMFError> {
+    pub fn from_reader(reader: &mut dyn Read) -> Result<SMF,SMFError> {
         SMFReader::read_smf(reader)
     }
 

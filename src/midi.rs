@@ -30,9 +30,9 @@ impl error::Error for MidiError {
         }
     }
 
-    fn cause(&self) -> Option<&error::Error> {
+    fn cause(&self) -> Option<&dyn error::Error> {
         match *self {
-            MidiError::Error(ref err) => Some(err as &error::Error),
+            MidiError::Error(ref err) => Some(err as &dyn error::Error),
             _ => None,
         }
     }
@@ -186,7 +186,7 @@ impl MidiMessage {
 
     /// Get the next midi message from the reader given that the
     /// status `stat` has just been read
-    pub fn next_message_given_status(stat: u8, reader: &mut Read) -> Result<MidiMessage, MidiError> {
+    pub fn next_message_given_status(stat: u8, reader: &mut dyn Read) -> Result<MidiMessage, MidiError> {
         let mut ret:Vec<u8> = Vec::with_capacity(3);
         ret.push(stat);
         match MidiMessage::data_bytes(stat) {
@@ -210,7 +210,7 @@ impl MidiMessage {
 
     /// Get the next midi message from the reader given that there's a running
     /// status of `stat` and that in place of a status was read `databyte`
-    pub fn next_message_running_status(stat: u8, databyte: u8, reader: &mut Read) -> Result<MidiMessage, MidiError> {
+    pub fn next_message_running_status(stat: u8, databyte: u8, reader: &mut dyn Read) -> Result<MidiMessage, MidiError> {
         let mut ret:Vec<u8> = Vec::with_capacity(3);
         ret.push(stat);
         ret.push(databyte);
@@ -226,7 +226,7 @@ impl MidiMessage {
     }
 
     /// Extract next midi message from a reader
-    pub fn next_message(reader: &mut Read) -> Result<MidiMessage,MidiError> {
+    pub fn next_message(reader: &mut dyn Read) -> Result<MidiMessage,MidiError> {
         let stat = try!(read_byte(reader));
         MidiMessage::next_message_given_status(stat,reader)
     }

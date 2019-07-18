@@ -95,7 +95,7 @@ impl SMFWriter {
     }
 
     // Write a variable length value.  Return number of bytes written.
-    pub fn write_vtime(val: u64, writer: &mut Write) -> Result<u32,Error> {
+    pub fn write_vtime(val: u64, writer: &mut dyn Write) -> Result<u32,Error> {
         let storage = SMFWriter::vtime_to_vec(val);
         try!(writer.write_all(&storage[..]));
         Ok(storage.len() as u32)
@@ -190,7 +190,7 @@ impl SMFWriter {
 
     // actual writing stuff below
 
-    fn write_header(&self, writer: &mut Write) -> Result<(),Error> {
+    fn write_header(&self, writer: &mut dyn Write) -> Result<(),Error> {
         try!(writer.write_all(&[0x4D,0x54,0x68,0x64]));
         try!(writer.write_u32::<BigEndian>(6));
         try!(writer.write_u16::<BigEndian>(self.format));
@@ -201,7 +201,7 @@ impl SMFWriter {
 
     /// Write out all the tracks that have been added to this
     /// SMFWriter to the passed writer
-    pub fn write_all(self, writer: &mut Write) -> Result<(),Error> {
+    pub fn write_all(self, writer: &mut dyn Write) -> Result<(),Error> {
         try!(self.write_header(writer));
         for track in self.tracks.into_iter() {
             try!(writer.write_all(&track[..]));
