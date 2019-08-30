@@ -10,7 +10,7 @@ use util::{fill_buf, read_byte, latin1_decode};
 pub struct SMFReader;
 
 impl SMFReader {
-    fn parse_header(reader: &mut Read) -> Result<SMF,SMFError> {
+    fn parse_header(reader: &mut dyn Read) -> Result<SMF,SMFError> {
         let mut header:[u8;14] = [0;14];
         try!(fill_buf(reader,&mut header));
 
@@ -45,7 +45,7 @@ impl SMFReader {
                  division: division } )
     }
 
-    fn next_event(reader: &mut Read, laststat: u8, was_running: &mut bool) -> Result<TrackEvent,SMFError> {
+    fn next_event(reader: &mut dyn Read, laststat: u8, was_running: &mut bool) -> Result<TrackEvent,SMFError> {
         let time = try!(SMFReader::read_vtime(reader));
         let stat = try!(read_byte(reader));
 
@@ -79,7 +79,7 @@ impl SMFReader {
         }
     }
 
-    fn parse_track(reader: &mut Read) -> Result<Track,SMFError> {
+    fn parse_track(reader: &mut dyn Read) -> Result<Track,SMFError> {
         let mut res:Vec<TrackEvent> = Vec::new();
         let mut buf:[u8;4] = [0;4];
 
@@ -164,7 +164,7 @@ impl SMFReader {
 
     /// Read a variable sized value from the reader.
     /// This is usually used for the times of midi events but is used elsewhere as well.
-    pub fn read_vtime(reader: &mut Read) -> Result<u64,SMFError> {
+    pub fn read_vtime(reader: &mut dyn Read) -> Result<u64,SMFError> {
         let mut res: u64 = 0;
         let mut i = 0;
         let cont_mask = 0x80;
@@ -185,7 +185,7 @@ impl SMFReader {
     }
 
     /// Read an entire SMF file
-    pub fn read_smf(reader: &mut Read) -> Result<SMF,SMFError> {
+    pub fn read_smf(reader: &mut dyn Read) -> Result<SMF,SMFError> {
         let mut smf = SMFReader::parse_header(reader);
         match smf {
             Ok(ref mut s) => {
