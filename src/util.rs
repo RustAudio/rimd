@@ -19,14 +19,14 @@ pub fn note_num_to_name(num: u32) -> String {
 }
 
 /// Read a single byte from a Reader
-pub fn read_byte(reader: &mut Read) -> Result<u8,Error> {
+pub fn read_byte(reader: &mut dyn Read) -> Result<u8,Error> {
     let mut b = [0; 1];
     try!(reader.read(&mut b));
     Ok(b[0])
 }
 
 /// Read from reader until buffer is full, or an error occurs
-pub fn fill_buf(reader: &mut Read, buf: &mut [u8]) -> Result<(),Error> {
+pub fn fill_buf(reader: &mut dyn Read, buf: &mut [u8]) -> Result<(),Error> {
     let mut read = 0;
     while read < buf.len() {
         let bytes_read = try!(reader.read(&mut buf[read..]));
@@ -40,7 +40,7 @@ pub fn fill_buf(reader: &mut Read, buf: &mut [u8]) -> Result<(),Error> {
 
 /// Read amt from reader and put result in dest.  Errors in underlying
 /// reader will cause this function to return an error
-pub fn read_amount(reader: &mut Read, dest: &mut Vec<u8>, amt: usize) -> Result<(),Error> {
+pub fn read_amount(reader: &mut dyn Read, dest: &mut Vec<u8>, amt: usize) -> Result<(),Error> {
     let start_len = dest.len();
     let mut len = start_len;
     if dest.capacity() < start_len + amt {

@@ -31,9 +31,9 @@ impl error::Error for MetaError {
         }
     }
 
-    fn cause(&self) -> Option<&error::Error> {
+    fn cause(&self) -> Option<&dyn error::Error> {
         match *self {
-            MetaError::Error(ref err) => Some(err as &error::Error),
+            MetaError::Error(ref err) => Some(err as &dyn error::Error),
             _ => None,
         }
     }
@@ -151,7 +151,7 @@ impl MetaEvent {
     }
 
     /// Extract the next meta event from a reader
-    pub fn next_event(reader: &mut Read) -> Result<MetaEvent, MetaError> {
+    pub fn next_event(reader: &mut dyn Read) -> Result<MetaEvent, MetaError> {
         let command =
             match MetaCommand::from_u8(try!(read_byte(reader))) {
                 Some(c) => {c},
