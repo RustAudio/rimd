@@ -12,7 +12,7 @@ pub struct SMFReader;
 impl SMFReader {
     fn parse_header(reader: &mut dyn Read) -> Result<SMF,SMFError> {
         let mut header:[u8;14] = [0;14];
-        try!(fill_buf(reader,&mut header));
+        fill_buf(reader,&mut header)?;
 
         // skip RIFF header if present
         if header[0] == 0x52 &&
@@ -20,8 +20,8 @@ impl SMFReader {
            header[2] == 0x46 &&
            header[3] == 0x46 {
             let mut skip:[u8; 6] = [0; 6];
-            try!(fill_buf(reader, &mut skip));
-            try!(fill_buf(reader, &mut header));
+            fill_buf(reader, &mut skip)?;
+            fill_buf(reader, &mut header)?;
         }
 
         if header[0] != 0x4D ||
@@ -46,8 +46,8 @@ impl SMFReader {
     }
 
     fn next_event(reader: &mut dyn Read, laststat: u8, was_running: &mut bool) -> Result<TrackEvent,SMFError> {
-        let time = try!(SMFReader::read_vtime(reader));
-        let stat = try!(read_byte(reader));
+        let time = Self::read_vtime(reader)?;
+        let stat = read_byte(reader)?;
 
         if (stat & 0x80) == 0 {
             *was_running = true;
@@ -57,7 +57,7 @@ impl SMFReader {
 
         match stat {
             0xFF => {
-                let event = try!(MetaEvent::next_event(reader));
+                let event = MetaEvent::next_event(reader)?;
                 Ok( TrackEvent {
                     vtime: time,
                     event: Event::Meta(event),
@@ -67,9 +67,9 @@ impl SMFReader {
                 let msg =
                     if (stat & 0x80) == 0 {
                         // this is a running status, so assume we have the same status as last time
-                        try!(MidiMessage::next_message_running_status(laststat,stat,reader))
+                        MidiMessage::next_message_running_status(laststat,stat,reader)?
                     } else {
-                        try!(MidiMessage::next_message_given_status(stat,reader))
+                        MidiMessage::next_message_given_status(stat,reader)?
                     };
                 Ok( TrackEvent {
                     vtime: time,
@@ -86,14 +86,14 @@ impl SMFReader {
         let mut copyright = None;
         let mut name = None;
 
-        try!(fill_buf(reader,&mut buf));
+        fill_buf(reader,&mut buf)?;
         if buf[0] != 0x4D || // "MTrk"
            buf[1] != 0x54 ||
            buf[2] != 0x72 ||
            buf[3] != 0x6B {
                return Err(SMFError::InvalidSMFFile("Invalid track magic"));
            }
-        try!(fill_buf(reader,&mut buf));
+        fill_buf(reader,&mut buf)?;
         let len =
             ((buf[0] as u32) << 24 |
              (buf[1] as u32) << 16 |
@@ -174,7 +174,7 @@ impl SMFReader {
             if i > 9 {
                 return Err(SMFError::InvalidSMFFile("Variable length value too long"));
             }
-            let next = try!(read_byte(reader));
+            let next = read_byte(reader)?;
             res |= next as u64 & val_mask;
             if (next & cont_mask) == 0 {
                 break;
@@ -190,7 +190,7 @@ impl SMFReader {
         match smf {
             Ok(ref mut s) => {
                 for _ in 0..s.tracks.capacity() {
-                    s.tracks.push(try!(SMFReader::parse_track(reader)));
+                    s.tracks.push(SMFReader::parse_track(reader)?);
                 }
             }
             _ => {}

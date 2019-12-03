@@ -153,7 +153,7 @@ impl MetaEvent {
     /// Extract the next meta event from a reader
     pub fn next_event(reader: &mut dyn Read) -> Result<Self, MetaError> {
         let command =
-            match MetaCommand::from_u8(try!(read_byte(reader))) {
+            match MetaCommand::from_u8(read_byte(reader)?) {
                 Some(c) => {c},
                 None => MetaCommand::Unknown,
             };
@@ -162,7 +162,7 @@ impl MetaEvent {
             Err(_) => { return Err(MetaError::OtherErr("Couldn't read time for meta command")); }
         };
         let mut data = Vec::new();
-        try!(read_amount(reader,&mut data, length as usize));
+        read_amount(reader,&mut data, length as usize)?;
         Ok(Self{
             command,
             length,

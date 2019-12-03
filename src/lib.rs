@@ -314,7 +314,7 @@ impl SMF {
 impl<'a> std::convert::TryFrom<&'a Path> for SMF {
     type Error = SMFError;
     fn try_from(path: &'a Path) -> Result<Self, Self::Error> {
-        let mut file = try!(File::open(path));
+        let mut file = File::open(path)?;
         SMFReader::read_smf(&mut file)
     }
 }
