@@ -3,6 +3,7 @@ extern crate rimd;
 use rimd::{SMF,SMFError};
 use std::env::{args,Args};
 use std::path::Path;
+use std::convert::TryFrom;
 
 fn main() {
     let mut args: Args = args();
@@ -12,7 +13,7 @@ fn main() {
         None => { panic!("Please pass a path to an SMF to test") },
     };
     println!("Reading: {}",pathstr);
-    match SMF::from_file(&Path::new(&pathstr[..])) {
+    match SMF::try_from(Path::new(&pathstr[..])) {
         Ok(smf) => {
             println!("format: {}",smf.format);
             println!("tracks: {}",smf.tracks.len());

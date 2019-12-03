@@ -256,15 +256,6 @@ pub struct SMF {
 
 impl SMF {
     /// Read an SMF file at the given path
-    pub fn from_file(path: &Path) -> Result<Self,SMFError> {
-        let mut file = try!(File::open(path));
-        SMFReader::read_smf(&mut file)
-    }
-
-    /// Read an SMF from the given reader
-    pub fn from_reader(reader: &mut dyn Read) -> Result<Self,SMFError> {
-        SMFReader::read_smf(reader)
-    }
 
     /// Convert a type 0 (single track) to type 1 (multi track) SMF
     /// Does nothing if the SMF is already in type 1
@@ -320,3 +311,18 @@ impl SMF {
     }
 }
 
+impl<'a> std::convert::TryFrom<&'a Path> for SMF {
+    type Error = SMFError;
+    fn try_from(path: &'a Path) -> Result<Self, Self::Error> {
+        let mut file = try!(File::open(path));
+        SMFReader::read_smf(&mut file)
+    }
+}
+
+impl<'a> std::convert::TryFrom<&'a mut dyn Read> for SMF {
+    type Error = SMFError;
+    /// Read an SMF from the given reader
+    fn try_from(reader: &'a mut dyn Read) -> Result<Self, Self::Error> {
+        SMFReader::read_smf(reader)
+    }
+}
