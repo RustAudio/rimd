@@ -21,7 +21,7 @@ use ::{Event,AbsoluteEvent,MetaEvent,MetaCommand,SMFFormat};
 /// let mut builder = SMFBuilder::new();
 /// // add some events to builder
 /// let smf = builder.result();
-/// let writer = SMFWriter::from_smf(smf);
+/// let writer = SMFWriter::from(smf);
 /// let result = writer.write_to_file(Path::new("/path/to/file.smf"));
 /// // handle result
 pub struct SMFWriter {
