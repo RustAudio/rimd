@@ -40,6 +40,10 @@ impl SMFWriter {
         }
     }
 
+    pub fn len(&self) -> usize {
+        self.tracks.len()
+    }
+
     /// Create a new SMFWriter with the given number of units per
     /// beat.  The SMFWriter will initially have no tracks.
     pub fn new_with_division(ticks: i16) -> Self {
@@ -177,7 +181,7 @@ impl SMFWriter {
         writer.write_all(&[0x4D,0x54,0x68,0x64])?;
         writer.write_u32::<BigEndian>(6)?;
         writer.write_u16::<BigEndian>(self.format)?;
-        writer.write_u16::<BigEndian>(self.tracks.len() as u16)?;
+        writer.write_u16::<BigEndian>(self.len() as u16)?;
         writer.write_i16::<BigEndian>(self.ticks)?;
         Ok(())
     }
