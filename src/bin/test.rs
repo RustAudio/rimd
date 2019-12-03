@@ -1,6 +1,6 @@
 extern crate rimd;
 
-use rimd::{SMF,SMFError};
+use rimd::{SMF};
 use std::env::{args,Args};
 use std::path::Path;
 use std::convert::TryFrom;
@@ -15,9 +15,7 @@ fn main() {
     println!("Reading: {}",pathstr);
     match SMF::try_from(Path::new(&pathstr[..])) {
         Ok(smf) => {
-            println!("format: {}",smf.format);
-            println!("tracks: {}",smf.tracks.len());
-            println!("division: {}",smf.division);
+            println!("{}", smf);
             let mut tnum = 1;
             for track in smf.tracks.iter() {
                 let mut time: u64 = 0;

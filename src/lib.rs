@@ -255,6 +255,10 @@ pub struct SMF {
 
 
 impl SMF {
+
+    pub fn len(&self) -> usize {
+        self.tracks.len()
+    }
     /// Read an SMF file at the given path
 
     /// Convert a type 0 (single track) to type 1 (multi track) SMF
@@ -308,6 +312,12 @@ impl SMF {
                 Some(out)
             }
         }
+    }
+}
+
+impl fmt::Display for SMF {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "format: {}, tracks: {}, division: {}", self.format, self.len(), self.division)
     }
 }
 

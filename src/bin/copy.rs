@@ -1,6 +1,6 @@
 extern crate rimd;
 
-use rimd::{SMF,SMFError,SMFWriter};
+use rimd::{SMF,SMFWriter};
 use std::env::{args,Args};
 use std::path::Path;
 use std::convert::TryFrom;
@@ -22,12 +22,7 @@ fn main() {
             writer.write_to_file(&Path::new(&deststr[..])).unwrap();
         }
         Err(e) => {
-            match e {
-                SMFError::InvalidSMFFile(s) => {println!("{}",s);}
-                SMFError::Error(e) => {println!("io: {}",e);}
-                SMFError::MidiError(_) => {println!("Midi Error");}
-                SMFError::MetaError(_) => {println!("Meta Error");}
-            }
+            println!("{}",e)
         }
     }
 }
