@@ -43,21 +43,17 @@ impl SMFWriter {
     /// Create a new SMFWriter with the given number of units per
     /// beat.  The SMFWriter will initially have no tracks.
     pub fn new_with_division(ticks: i16) -> Self {
-        Self {
-            format: 1,
-            ticks: ticks,
-            tracks: Vec::new(),
-        }
+        Self::new(1, ticks, Vec::new())
     }
 
     /// Create a new SMFWriter with the given format and number of
     /// units per beat.  The SMFWriter will initially have no tracks.
     pub fn new_with_division_and_format(format: SMFFormat, ticks: i16) -> Self {
-        Self {
-            format: format as u16,
-            ticks: ticks,
-            tracks: Vec::new(),
-        }
+        Self::new(
+            format as u16,
+            ticks,
+            Vec::new()
+        )
     }
 
     pub fn vtime_to_vec(val: u64) -> Vec<u8> {

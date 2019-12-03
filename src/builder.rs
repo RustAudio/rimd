@@ -194,7 +194,7 @@ impl SMFBuilder {
     }
 
     /// Get the number of tracks currenly in the builder
-    pub fn num_tracks(&self) -> usize {
+    pub fn len(&self) -> usize {
         self.tracks.len()
     }
 
