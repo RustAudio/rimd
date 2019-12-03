@@ -30,12 +30,7 @@ fn main() {
             }
         }
         Err(e) => {
-            match e {
-                SMFError::InvalidSMFFile(s) => {println!("{}",s);}
-                SMFError::Error(e) => {println!("io: {}",e);}
-                SMFError::MidiError(e) => {println!("Midi Error: {}",e);}
-                SMFError::MetaError(_) => {println!("Meta Error");}
-            }
+            println!("{}", e);
         }
     }
 }

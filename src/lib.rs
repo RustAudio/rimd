@@ -185,25 +185,25 @@ pub enum SMFError {
 }
 
 impl From<Error> for SMFError {
-    fn from(err: Error) -> SMFError {
+    fn from(err: Error) -> Self {
         SMFError::Error(err)
     }
 }
 
 impl From<MidiError> for SMFError {
-    fn from(err: MidiError) -> SMFError {
+    fn from(err: MidiError) -> Self {
         SMFError::MidiError(err)
     }
 }
 
 impl From<MetaError> for SMFError {
-    fn from(err: MetaError) -> SMFError {
+    fn from(err: MetaError) -> Self {
         SMFError::MetaError(err)
     }
 }
 
 impl From<FromUtf8Error> for SMFError {
-    fn from(_: FromUtf8Error) -> SMFError {
+    fn from(_: FromUtf8Error) -> Self {
         SMFError::InvalidSMFFile("Invalid UTF8 data in file")
     }
 }
