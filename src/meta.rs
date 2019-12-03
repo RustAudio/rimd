@@ -17,7 +17,7 @@ pub enum MetaError {
 }
 
 impl From<Error> for MetaError {
-    fn from(err: Error) -> MetaError {
+    fn from(err: Error) -> Self {
         MetaError::Error(err)
     }
 }
@@ -82,8 +82,8 @@ pub struct MetaEvent {
 }
 
 impl Clone for MetaEvent {
-    fn clone(&self) -> MetaEvent {
-        MetaEvent {
+    fn clone(&self) -> Self {
+        Self {
             command: self.command,
             length: self.length,
             data: self.data.clone(),
@@ -151,22 +151,22 @@ impl MetaEvent {
     }
 
     /// Extract the next meta event from a reader
-    pub fn next_event(reader: &mut dyn Read) -> Result<MetaEvent, MetaError> {
+    pub fn next_event(reader: &mut dyn Read) -> Result<Self, MetaError> {
         let command =
-            match MetaCommand::from_u8(try!(read_byte(reader))) {
+            match MetaCommand::from_u8(read_byte(reader)?) {
                 Some(c) => {c},
                 None => MetaCommand::Unknown,
             };
-        let len = match SMFReader::read_vtime(reader) {
+        let length = match SMFReader::read_vtime(reader) {
             Ok(t) => { t }
             Err(_) => { return Err(MetaError::OtherErr("Couldn't read time for meta command")); }
         };
         let mut data = Vec::new();
-        try!(read_amount(reader,&mut data,len as usize));
-        Ok(MetaEvent{
-            command: command,
-            length: len,
-            data: data
+        read_amount(reader,&mut data, length as usize)?;
+        Ok(Self{
+            command,
+            length,
+            data
         })
     }
 
@@ -191,8 +191,8 @@ impl MetaEvent {
     // event constructors below
 
     /// Create a sequence number meta event
-    pub fn sequence_number(sequence_number: u16) -> MetaEvent {
-        MetaEvent {
+    pub fn sequence_number(sequence_number: u16) -> Self {
+        Self {
             command: MetaCommand::SequenceNumber,
             length: 0x02,
             data: MetaEvent::u16_to_vec(sequence_number),
@@ -200,8 +200,8 @@ impl MetaEvent {
     }
 
     /// Create a text meta event
-    pub fn text_event(text: String) -> MetaEvent {
-        MetaEvent {
+    pub fn text_event(text: String) -> Self {
+        Self {
             command: MetaCommand::TextEvent,
             length: text.len() as u64,
             data: text.into_bytes(),
@@ -209,8 +209,8 @@ impl MetaEvent {
     }
 
     /// Create a copyright notice meta event
-    pub fn copyright_notice(copyright: String) -> MetaEvent {
-        MetaEvent {
+    pub fn copyright_notice(copyright: String) -> Self {
+        Self {
             command: MetaCommand::CopyrightNotice,
             length: copyright.len() as u64,
             data: copyright.into_bytes(),
@@ -218,8 +218,8 @@ impl MetaEvent {
     }
 
     /// Create a name meta event
-    pub fn sequence_or_track_name(name: String) -> MetaEvent {
-        MetaEvent {
+    pub fn sequence_or_track_name(name: String) -> Self {
+        Self {
             command: MetaCommand::SequenceOrTrackName,
             length: name.len() as u64,
             data: name.into_bytes(),
@@ -227,8 +227,8 @@ impl MetaEvent {
     }
 
     /// Create an instrument name meta event
-    pub fn instrument_name(name: String) -> MetaEvent {
-        MetaEvent {
+    pub fn instrument_name(name: String) -> Self {
+        Self {
             command: MetaCommand::InstrumentName,
             length: name.len() as u64,
             data: name.into_bytes(),
@@ -236,8 +236,8 @@ impl MetaEvent {
     }
 
     /// Create a lyric text meta event
-    pub fn lyric_text(text: String) -> MetaEvent {
-        MetaEvent {
+    pub fn lyric_text(text: String) -> Self {
+        Self {
             command: MetaCommand::LyricText,
             length: text.len() as u64,
             data: text.into_bytes(),
@@ -246,8 +246,8 @@ impl MetaEvent {
 
 
     /// Create a marker text meta event
-    pub fn marker_text(text: String) -> MetaEvent {
-        MetaEvent {
+    pub fn marker_text(text: String) -> Self {
+        Self {
             command: MetaCommand::MarkerText,
             length: text.len() as u64,
             data: text.into_bytes(),
@@ -255,8 +255,8 @@ impl MetaEvent {
     }
 
     /// Create a cue point meta event
-    pub fn cue_point(text: String) -> MetaEvent {
-        MetaEvent {
+    pub fn cue_point(text: String) -> Self {
+        Self {
             command: MetaCommand::CuePoint,
             length: text.len() as u64,
             data: text.into_bytes(),
@@ -264,8 +264,8 @@ impl MetaEvent {
     }
 
     /// Create a midi channel prefix assignment meta event
-    pub fn midichannel_prefix_assignment(channel: u8) -> MetaEvent {
-        MetaEvent {
+    pub fn midichannel_prefix_assignment(channel: u8) -> Self {
+        Self {
             command: MetaCommand::MIDIChannelPrefixAssignment,
             length: 1,
             data: vec![channel],
@@ -273,8 +273,8 @@ impl MetaEvent {
     }
 
     /// Create a midi port prefix assignment meta event
-    pub fn midiport_prefix_assignment(port: u8) -> MetaEvent {
-        MetaEvent {
+    pub fn midiport_prefix_assignment(port: u8) -> Self {
+        Self {
             command: MetaCommand::MIDIPortPrefixAssignment,
             length: 1,
             data: vec![port],
@@ -282,8 +282,8 @@ impl MetaEvent {
     }
 
     /// Create an end of track meta event
-    pub fn end_of_track() -> MetaEvent {
-        MetaEvent {
+    pub fn end_of_track() -> Self {
+        Self {
             command: MetaCommand::EndOfTrack,
             length: 0,
             data: vec![],
@@ -293,8 +293,8 @@ impl MetaEvent {
     /// Create an event to set track tempo.  This is stored
     /// as a 24-bit value.  This method will fail an assertion if
     /// the supplied tempo is greater than 2^24.
-    pub fn tempo_setting(tempo: u32) -> MetaEvent {
-        MetaEvent {
+    pub fn tempo_setting(tempo: u32) -> Self {
+        Self {
             command: MetaCommand::TempoSetting,
             length: 3,
             data: MetaEvent::u24_to_vec(tempo),
@@ -302,8 +302,8 @@ impl MetaEvent {
     }
 
     /// Create an smpte offset meta event
-    pub fn smpte_offset(hours: u8, minutes: u8, seconds: u8, frames: u8, fractional: u8) -> MetaEvent {
-        MetaEvent {
+    pub fn smpte_offset(hours: u8, minutes: u8, seconds: u8, frames: u8, fractional: u8) -> Self {
+        Self {
             command: MetaCommand::SMPTEOffset,
             length: 5,
             data: vec![hours,minutes,seconds,frames,fractional],
@@ -322,8 +322,8 @@ impl MetaEvent {
     /// The parameter `num_32nd_notes_per_24_clocks` defines this in terms of the
     /// number of 1/32 notes which make up the usual 24 MIDI Clocks
     /// (the 'standard' quarter note).  8 is standard
-    pub fn time_signature(numerator: u8, denominator: u8, clocks_per_tick: u8, num_32nd_notes_per_24_clocks: u8) -> MetaEvent {
-        MetaEvent {
+    pub fn time_signature(numerator: u8, denominator: u8, clocks_per_tick: u8, num_32nd_notes_per_24_clocks: u8) -> Self {
+        Self {
             command: MetaCommand::TimeSignature,
             length: 4,
             data: vec![numerator,denominator,clocks_per_tick,num_32nd_notes_per_24_clocks],
@@ -335,8 +335,8 @@ impl MetaEvent {
 
     /// `sharps_flats` of 0 represents a key of C, negative numbers represent
     /// 'flats', while positive numbers represent 'sharps'.
-    pub fn key_signature(sharps_flats: u8, major_minor: u8) -> MetaEvent {
-        MetaEvent {
+    pub fn key_signature(sharps_flats: u8, major_minor: u8) -> Self {
+        Self {
             command: MetaCommand::KeySignature,
             length: 2,
             data: vec![sharps_flats, major_minor],
@@ -346,8 +346,8 @@ impl MetaEvent {
     /// This is the MIDI-file equivalent of the System Exclusive Message.
     /// sequencer-specific directives can be incorporated into a
     /// MIDI file using this event.
-    pub fn sequencer_specific_event(data: Vec<u8>) -> MetaEvent {
-        MetaEvent {
+    pub fn sequencer_specific_event(data: Vec<u8>) -> Self {
+        Self {
             command: MetaCommand::SequencerSpecificEvent,
             length: data.len() as u64,
             data: data,

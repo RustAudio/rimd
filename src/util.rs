@@ -21,7 +21,7 @@ pub fn note_num_to_name(num: u32) -> String {
 /// Read a single byte from a Reader
 pub fn read_byte(reader: &mut dyn Read) -> Result<u8,Error> {
     let mut b = [0; 1];
-    try!(reader.read(&mut b));
+    reader.read(&mut b)?;
     Ok(b[0])
 }
 
@@ -29,7 +29,7 @@ pub fn read_byte(reader: &mut dyn Read) -> Result<u8,Error> {
 pub fn fill_buf(reader: &mut dyn Read, buf: &mut [u8]) -> Result<(),Error> {
     let mut read = 0;
     while read < buf.len() {
-        let bytes_read = try!(reader.read(&mut buf[read..]));
+        let bytes_read = reader.read(&mut buf[read..])?;
         if bytes_read == 0 {
             return Err(Error::new(ErrorKind::InvalidData, "file ends before it should"));
         }

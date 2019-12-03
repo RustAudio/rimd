@@ -117,6 +117,20 @@ impl Event {
             }
         }
     }
+
+    pub fn is_midi(&self) -> bool {
+        match self {
+            Event::Midi(_) => true,
+            Event::Meta(_) => false,
+        }
+    }
+
+    pub fn is_meta(&self) -> bool {
+        match self {
+            Event::Midi(_) => false,
+            Event::Meta(_) => true,
+        }
+    }
 }
 
 /// An event occuring in the track.
@@ -185,25 +199,25 @@ pub enum SMFError {
 }
 
 impl From<Error> for SMFError {
-    fn from(err: Error) -> SMFError {
+    fn from(err: Error) -> Self {
         SMFError::Error(err)
     }
 }
 
 impl From<MidiError> for SMFError {
-    fn from(err: MidiError) -> SMFError {
+    fn from(err: MidiError) -> Self {
         SMFError::MidiError(err)
     }
 }
 
 impl From<MetaError> for SMFError {
-    fn from(err: MetaError) -> SMFError {
+    fn from(err: MetaError) -> Self {
         SMFError::MetaError(err)
     }
 }
 
 impl From<FromUtf8Error> for SMFError {
-    fn from(_: FromUtf8Error) -> SMFError {
+    fn from(_: FromUtf8Error) -> Self {
         SMFError::InvalidSMFFile("Invalid UTF8 data in file")
     }
 }
@@ -255,21 +269,16 @@ pub struct SMF {
 
 
 impl SMF {
-    /// Read an SMF file at the given path
-    pub fn from_file(path: &Path) -> Result<SMF,SMFError> {
-        let mut file = try!(File::open(path));
-        SMFReader::read_smf(&mut file)
-    }
 
-    /// Read an SMF from the given reader
-    pub fn from_reader(reader: &mut dyn Read) -> Result<SMF,SMFError> {
-        SMFReader::read_smf(reader)
+    pub fn len(&self) -> usize {
+        self.tracks.len()
     }
+    /// Read an SMF file at the given path
 
     /// Convert a type 0 (single track) to type 1 (multi track) SMF
     /// Does nothing if the SMF is already in type 1
     /// Returns None if the SMF is in type 2 (multi song)
-    pub fn to_multi_track(&self) -> Option<SMF> {
+    pub fn to_multi_track(&self) -> Option<Self> {
         match self.format {
             SMFFormat::MultiTrack => Some(self.clone()),
             SMFFormat::MultiSong => None,
@@ -320,3 +329,24 @@ impl SMF {
     }
 }
 
+impl fmt::Display for SMF {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "format: {}, tracks: {}, division: {}", self.format, self.len(), self.division)
+    }
+}
+
+impl<'a> std::convert::TryFrom<&'a Path> for SMF {
+    type Error = SMFError;
+    fn try_from(path: &'a Path) -> Result<Self, Self::Error> {
+        let mut file = File::open(path)?;
+        SMFReader::read_smf(&mut file)
+    }
+}
+
+impl<'a> std::convert::TryFrom<&'a mut dyn Read> for SMF {
+    type Error = SMFError;
+    /// Read an SMF from the given reader
+    fn try_from(reader: &'a mut dyn Read) -> Result<Self, Self::Error> {
+        SMFReader::read_smf(reader)
+    }
+}

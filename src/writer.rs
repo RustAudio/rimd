@@ -1,6 +1,8 @@
-use std::fs::OpenOptions;
-use std::io::{Error,Write};
-use std::path::Path;
+use std::{
+    fs::OpenOptions,
+    io::{Error,Write},
+    path::Path
+};
 
 use byteorder::{BigEndian, WriteBytesExt};
 
@@ -19,7 +21,7 @@ use ::{Event,AbsoluteEvent,MetaEvent,MetaCommand,SMFFormat};
 /// let mut builder = SMFBuilder::new();
 /// // add some events to builder
 /// let smf = builder.result();
-/// let writer = SMFWriter::from_smf(smf);
+/// let writer = SMFWriter::from(smf);
 /// let result = writer.write_to_file(Path::new("/path/to/file.smf"));
 /// // handle result
 pub struct SMFWriter {
@@ -30,47 +32,32 @@ pub struct SMFWriter {
 
 impl SMFWriter {
 
+    pub fn new(format: u16, ticks: i16, tracks: Vec<Vec<u8>>) -> Self {
+        Self {
+            format,
+            ticks,
+            tracks,
+        }
+    }
+
+    pub fn len(&self) -> usize {
+        self.tracks.len()
+    }
+
     /// Create a new SMFWriter with the given number of units per
     /// beat.  The SMFWriter will initially have no tracks.
-    pub fn new_with_division(ticks: i16) -> SMFWriter {
-        SMFWriter {
-            format: 1,
-            ticks: ticks,
-            tracks: Vec::new(),
-        }
+    pub fn new_with_division(ticks: i16) -> Self {
+        Self::new(1, ticks, Vec::new())
     }
 
     /// Create a new SMFWriter with the given format and number of
     /// units per beat.  The SMFWriter will initially have no tracks.
-    pub fn new_with_division_and_format(format: SMFFormat, ticks: i16) -> SMFWriter {
-        SMFWriter {
-            format: format as u16,
-            ticks: ticks,
-            tracks: Vec::new(),
-        }
-    }
-
-    /// Create a writer that has all the tracks from the given SMF already added
-    pub fn from_smf(smf: SMF) -> SMFWriter {
-        let mut writer = SMFWriter::new_with_division_and_format
-            (smf.format, smf.division);
-
-        for track in smf.tracks.iter() {
-            let mut length = 0;
-            let mut saw_eot = false;
-            let mut vec = Vec::new();
-            writer.start_track_header(&mut vec);
-
-            for event in track.events.iter() {
-                length += SMFWriter::write_vtime(event.vtime as u64, &mut vec).unwrap(); // TODO: Handle error
-                writer.write_event(&mut vec, &(event.event), &mut length, &mut saw_eot);
-            }
-
-            writer.finish_track_write(&mut vec, &mut length, saw_eot);
-            writer.tracks.push(vec);
-        }
-
-        writer
+    pub fn new_with_division_and_format(format: SMFFormat, ticks: i16) -> Self {
+        Self::new(
+            format as u16,
+            ticks,
+            Vec::new()
+        )
     }
 
     pub fn vtime_to_vec(val: u64) -> Vec<u8> {
@@ -97,7 +84,7 @@ impl SMFWriter {
     // Write a variable length value.  Return number of bytes written.
     pub fn write_vtime(val: u64, writer: &mut dyn Write) -> Result<u32,Error> {
         let storage = SMFWriter::vtime_to_vec(val);
-        try!(writer.write_all(&storage[..]));
+        writer.write_all(&storage[..])?;
         Ok(storage.len() as u32)
     }
 
@@ -177,10 +164,10 @@ impl SMFWriter {
         }
 
         for ev in track {
-            let vtime = ev.get_time() - cur_time;
+            let vtime = ev.time - cur_time;
             cur_time = vtime;
             length += SMFWriter::write_vtime(vtime as u64,&mut vec).unwrap(); // TODO: Handle error
-            self.write_event(&mut vec, ev.get_event(), &mut length, &mut saw_eot);
+            self.write_event(&mut vec, &ev.event, &mut length, &mut saw_eot);
         }
 
         self.finish_track_write(&mut vec, &mut length, saw_eot);
@@ -191,20 +178,20 @@ impl SMFWriter {
     // actual writing stuff below
 
     fn write_header(&self, writer: &mut dyn Write) -> Result<(),Error> {
-        try!(writer.write_all(&[0x4D,0x54,0x68,0x64]));
-        try!(writer.write_u32::<BigEndian>(6));
-        try!(writer.write_u16::<BigEndian>(self.format));
-        try!(writer.write_u16::<BigEndian>(self.tracks.len() as u16));
-        try!(writer.write_i16::<BigEndian>(self.ticks));
+        writer.write_all(&[0x4D,0x54,0x68,0x64])?;
+        writer.write_u32::<BigEndian>(6)?;
+        writer.write_u16::<BigEndian>(self.format)?;
+        writer.write_u16::<BigEndian>(self.len() as u16)?;
+        writer.write_i16::<BigEndian>(self.ticks)?;
         Ok(())
     }
 
     /// Write out all the tracks that have been added to this
     /// SMFWriter to the passed writer
     pub fn write_all(self, writer: &mut dyn Write) -> Result<(),Error> {
-        try!(self.write_header(writer));
+        self.write_header(writer)?;
         for track in self.tracks.into_iter() {
-            try!(writer.write_all(&track[..]));
+            writer.write_all(&track[..])?;
         }
         Ok(())
     }
@@ -213,10 +200,34 @@ impl SMFWriter {
     /// file.
     /// Warning: This will overwrite an existing file
     pub fn write_to_file(self, path: &Path) -> Result<(),Error> {
-        let mut file = try!(OpenOptions::new().write(true).truncate(true).create(true).open(path));
+        let mut file = OpenOptions::new().write(true).truncate(true).create(true).open(path)?;
         self.write_all(&mut file)
     }
+}
 
+impl From<SMF> for SMFWriter {
+    /// Create a writer that has all the tracks from the given SMF already added
+    fn from(smf: SMF) -> Self {
+        let mut writer = Self::new_with_division_and_format
+            (smf.format, smf.division);
+
+        for track in smf.tracks.iter() {
+            let mut length = 0;
+            let mut saw_eot = false;
+            let mut vec = Vec::new();
+            writer.start_track_header(&mut vec);
+
+            for event in track.events.iter() {
+                length += Self::write_vtime(event.vtime as u64, &mut vec).unwrap(); // TODO: Handle error
+                writer.write_event(&mut vec, &(event.event), &mut length, &mut saw_eot);
+            }
+
+            writer.finish_track_write(&mut vec, &mut length, saw_eot);
+            writer.tracks.push(vec);
+        }
+
+        writer
+    }
 }
 
 #[test]

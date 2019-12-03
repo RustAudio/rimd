@@ -8,19 +8,19 @@ use ::{SMF,Event,SMFFormat,MetaEvent,MidiMessage,Track,TrackEvent};
 /// This is useful for apps that want to store events internally
 /// with absolute times and then quickly build an SMF file for saving etc...
 pub struct AbsoluteEvent {
-    time: u64,
-    event: Event,
+    pub time: u64,
+    pub event: Event,
 }
 
 impl AbsoluteEvent {
-    pub fn new_midi(time: u64, midi: MidiMessage) -> AbsoluteEvent {
-        AbsoluteEvent {
+    pub fn new_midi(time: u64, midi: MidiMessage) -> Self {
+        Self {
             time: time,
             event: Event::Midi(midi),
         }
     }
-    pub fn new_meta(time: u64, meta: MetaEvent) -> AbsoluteEvent {
-        AbsoluteEvent {
+    pub fn new_meta(time: u64, meta: MetaEvent) -> Self {
+        Self {
             time: time,
             event: Event::Meta(meta),
         }
@@ -29,27 +29,13 @@ impl AbsoluteEvent {
     /// Return true if the event inside this AbsoluteEvent is a midi
     /// event, false if it's a meta event
     pub fn is_midi(&self) -> bool {
-        match self.event {
-            Event::Midi(_) => true,
-            Event::Meta(_) => false,
-        }
+        self.event.is_midi()
     }
 
     /// Return true if the event inside this AbsoluteEvent is a meta
     /// event, false if it's a midi event
     pub fn is_meta(&self) -> bool {
-        match self.event {
-            Event::Midi(_) => false,
-            Event::Meta(_) => true,
-        }
-    }
-
-    pub fn get_event(&self) -> &Event {
-        &self.event
-    }
-
-    pub fn get_time(&self) -> u64 {
-        self.time
+        self.event.is_meta()
     }
 }
 
@@ -187,14 +173,14 @@ pub struct SMFBuilder {
 
 impl SMFBuilder {
     /// Create a new SMFBuilder.  Initially the builder will have no tracks
-    pub fn new() -> SMFBuilder {
-        SMFBuilder {
+    pub fn new() -> Self {
+        Self {
             tracks: Vec::new(),
         }
     }
 
     /// Get the number of tracks currenly in the builder
-    pub fn num_tracks(&self) -> usize {
+    pub fn len(&self) -> usize {
         self.tracks.len()
     }
 

@@ -16,7 +16,7 @@ pub enum MidiError {
 }
 
 impl From<Error> for MidiError {
-    fn from(err: Error) -> MidiError {
+    fn from(err: Error) -> Self {
         MidiError::Error(err)
     }
 }
@@ -141,9 +141,9 @@ impl MidiMessage {
 
     /// Create a midi message from a vector of bytes
     #[inline(always)]
-    pub fn from_bytes(bytes: Vec<u8>) -> MidiMessage{
+    pub fn from_bytes(bytes: Vec<u8>) -> Self {
         // TODO: Validate bytes
-        MidiMessage {
+        Self {
             data: bytes,
         }
     }
@@ -186,19 +186,19 @@ impl MidiMessage {
 
     /// Get the next midi message from the reader given that the
     /// status `stat` has just been read
-    pub fn next_message_given_status(stat: u8, reader: &mut dyn Read) -> Result<MidiMessage, MidiError> {
+    pub fn next_message_given_status(stat: u8, reader: &mut dyn Read) -> Result<Self, MidiError> {
         let mut ret:Vec<u8> = Vec::with_capacity(3);
         ret.push(stat);
         match MidiMessage::data_bytes(stat) {
             0 => {}
-            1 => { ret.push(try!(read_byte(reader))); }
-            2 => { ret.push(try!(read_byte(reader)));
-                   ret.push(try!(read_byte(reader))); }
+            1 => { ret.push(read_byte(reader)?); }
+            2 => { ret.push(read_byte(reader)?);
+                   ret.push(read_byte(reader)?); }
             -1 => { return Err(MidiError::OtherErr("Don't handle variable sized yet")); }
             -2 => {
                 // skip SysEx message
                 while {
-                    let byte = try!(read_byte(reader));
+                    let byte = read_byte(reader)?;
                     ret.push(byte);
                     byte != Status::SysExEnd as u8
                 } {}
@@ -217,7 +217,7 @@ impl MidiMessage {
         match MidiMessage::data_bytes(stat) {
             0 => { panic!("Can't have zero length message with running status"); }
             1 => { } // already read it
-            2 => { ret.push(try!(read_byte(reader))); } // only need one more byte
+            2 => { ret.push(read_byte(reader)?); } // only need one more byte
             -1 => { return Err(MidiError::OtherErr("Don't handle variable sized yet")); }
             -2 => { return Err(MidiError::OtherErr("Running status not permitted with meta and sysex event")); }
             _ =>  { return Err(MidiError::InvalidStatus(stat)); }
@@ -227,7 +227,7 @@ impl MidiMessage {
 
     /// Extract next midi message from a reader
     pub fn next_message(reader: &mut dyn Read) -> Result<MidiMessage,MidiError> {
-        let stat = try!(read_byte(reader));
+        let stat = read_byte(reader)?;
         MidiMessage::next_message_given_status(stat,reader)
     }
 
@@ -235,23 +235,23 @@ impl MidiMessage {
     // Functions to build midi messages
 
     /// Create a note on message
-    pub fn note_on(note: u8, velocity: u8, channel: u8) -> MidiMessage {
-        MidiMessage {
+    pub fn note_on(note: u8, velocity: u8, channel: u8) -> Self {
+        Self {
             data: vec![make_status(Status::NoteOn,channel), note, velocity],
         }
     }
 
     /// Create a note off message
-    pub fn note_off(note: u8, velocity: u8, channel: u8) -> MidiMessage {
-        MidiMessage {
+    pub fn note_off(note: u8, velocity: u8, channel: u8) -> Self {
+        Self {
             data: vec![make_status(Status::NoteOff,channel), note, velocity],
         }
     }
 
     /// Create a polyphonic aftertouch message
     /// This message is most often sent by pressing down on the key after it "bottoms out".
-    pub fn polyphonic_aftertouch(note: u8, pressure: u8, channel: u8) -> MidiMessage {
-        MidiMessage {
+    pub fn polyphonic_aftertouch(note: u8, pressure: u8, channel: u8) -> Self {
+        Self {
             data: vec![make_status(Status::PolyphonicAftertouch,channel), note, pressure],
         }
     }
@@ -259,16 +259,16 @@ impl MidiMessage {
     /// Create a control change message
     /// This message is sent when a controller value changes. Controllers include devices such as
     /// pedals and levers. Controller numbers 120-127 are reserved as "Channel Mode Messages".
-    pub fn control_change(controler: u8, data: u8, channel: u8) -> MidiMessage {
-        MidiMessage {
+    pub fn control_change(controler: u8, data: u8, channel: u8) -> Self {
+        Self {
             data: vec![make_status(Status::ControlChange,channel), controler, data],
         }
     }
 
     /// Create a program change message
     /// This message sent when the patch number changes. `program` is the new program number.
-    pub fn program_change(program: u8, channel: u8) -> MidiMessage {
-        MidiMessage {
+    pub fn program_change(program: u8, channel: u8) -> Self {
+        Self {
             data: vec![make_status(Status::ProgramChange,channel), program],
         }
     }
@@ -277,8 +277,8 @@ impl MidiMessage {
     /// This message is most often sent by pressing down on the key after it "bottoms out". This message
     /// is different from polyphonic after-touch. Use this message to send the single greatest pressure
     /// value (of all the current depressed keys). `pressure` is the pressure value.
-    pub fn channel_aftertouch(pressure: u8, channel: u8) -> MidiMessage {
-        MidiMessage {
+    pub fn channel_aftertouch(pressure: u8, channel: u8) -> Self {
+        Self {
             data: vec![make_status(Status::ChannelAftertouch,channel), pressure],
         }
     }
@@ -288,8 +288,8 @@ impl MidiMessage {
     /// The pitch bender is measured by a fourteen bit value. Center (no pitch change) is 2000H.
     /// Sensitivity is a function of the transmitter. `lsb` are the least significant 7 bits.
     /// `msb` are the most significant 7 bits.
-    pub fn pitch_bend(lsb: u8, msb: u8, channel: u8) -> MidiMessage {
-        MidiMessage {
+    pub fn pitch_bend(lsb: u8, msb: u8, channel: u8) -> Self {
+        Self {
             data: vec![make_status(Status::PitchBend,channel), lsb, msb],
         }
     }

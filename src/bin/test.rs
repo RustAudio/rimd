@@ -1,8 +1,9 @@
 extern crate rimd;
 
-use rimd::{SMF,SMFError};
+use rimd::{SMF};
 use std::env::{args,Args};
 use std::path::Path;
+use std::convert::TryFrom;
 
 fn main() {
     let mut args: Args = args();
@@ -12,11 +13,9 @@ fn main() {
         None => { panic!("Please pass a path to an SMF to test") },
     };
     println!("Reading: {}",pathstr);
-    match SMF::from_file(&Path::new(&pathstr[..])) {
+    match SMF::try_from(Path::new(&pathstr[..])) {
         Ok(smf) => {
-            println!("format: {}",smf.format);
-            println!("tracks: {}",smf.tracks.len());
-            println!("division: {}",smf.division);
+            println!("{}", smf);
             let mut tnum = 1;
             for track in smf.tracks.iter() {
                 let mut time: u64 = 0;
@@ -29,12 +28,7 @@ fn main() {
             }
         }
         Err(e) => {
-            match e {
-                SMFError::InvalidSMFFile(s) => {println!("{}",s);}
-                SMFError::Error(e) => {println!("io: {}",e);}
-                SMFError::MidiError(e) => {println!("Midi Error: {}",e);}
-                SMFError::MetaError(_) => {println!("Meta Error");}
-            }
+            println!("{}", e);
         }
     }
 }
