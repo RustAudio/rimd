@@ -17,7 +17,7 @@ fn main() {
     };
     match SMF::from_file(&Path::new(&pathstr[..])) {
         Ok(smf) => {
-            let writer = SMFWriter::from_smf(smf);
+            let writer = SMFWriter::from(smf);
             writer.write_to_file(&Path::new(&deststr[..])).unwrap();
         }
         Err(e) => {

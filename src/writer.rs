@@ -1,6 +1,8 @@
-use std::fs::OpenOptions;
-use std::io::{Error,Write};
-use std::path::Path;
+use std::{
+    fs::OpenOptions,
+    io::{Error,Write},
+    path::Path
+};
 
 use byteorder::{BigEndian, WriteBytesExt};
 
@@ -48,29 +50,6 @@ impl SMFWriter {
             ticks: ticks,
             tracks: Vec::new(),
         }
-    }
-
-    /// Create a writer that has all the tracks from the given SMF already added
-    pub fn from_smf(smf: SMF) -> Self {
-        let mut writer = SMFWriter::new_with_division_and_format
-            (smf.format, smf.division);
-
-        for track in smf.tracks.iter() {
-            let mut length = 0;
-            let mut saw_eot = false;
-            let mut vec = Vec::new();
-            writer.start_track_header(&mut vec);
-
-            for event in track.events.iter() {
-                length += SMFWriter::write_vtime(event.vtime as u64, &mut vec).unwrap(); // TODO: Handle error
-                writer.write_event(&mut vec, &(event.event), &mut length, &mut saw_eot);
-            }
-
-            writer.finish_track_write(&mut vec, &mut length, saw_eot);
-            writer.tracks.push(vec);
-        }
-
-        writer
     }
 
     pub fn vtime_to_vec(val: u64) -> Vec<u8> {
@@ -217,6 +196,30 @@ impl SMFWriter {
         self.write_all(&mut file)
     }
 
+}
+impl From<SMF> for SMFWriter {
+    /// Create a writer that has all the tracks from the given SMF already added
+    fn from(smf: SMF) -> Self {
+        let mut writer = Self::new_with_division_and_format
+            (smf.format, smf.division);
+
+        for track in smf.tracks.iter() {
+            let mut length = 0;
+            let mut saw_eot = false;
+            let mut vec = Vec::new();
+            writer.start_track_header(&mut vec);
+
+            for event in track.events.iter() {
+                length += Self::write_vtime(event.vtime as u64, &mut vec).unwrap(); // TODO: Handle error
+                writer.write_event(&mut vec, &(event.event), &mut length, &mut saw_eot);
+            }
+
+            writer.finish_track_write(&mut vec, &mut length, saw_eot);
+            writer.tracks.push(vec);
+        }
+
+        writer
+    }
 }
 
 #[test]
