@@ -8,19 +8,19 @@ use ::{SMF,Event,SMFFormat,MetaEvent,MidiMessage,Track,TrackEvent};
 /// This is useful for apps that want to store events internally
 /// with absolute times and then quickly build an SMF file for saving etc...
 pub struct AbsoluteEvent {
-    time: u64,
-    event: Event,
+    pub time: u64,
+    pub event: Event,
 }
 
 impl AbsoluteEvent {
     pub fn new_midi(time: u64, midi: MidiMessage) -> Self {
-        AbsoluteEvent {
+        Self {
             time: time,
             event: Event::Midi(midi),
         }
     }
     pub fn new_meta(time: u64, meta: MetaEvent) -> Self {
-        AbsoluteEvent {
+        Self {
             time: time,
             event: Event::Meta(meta),
         }
@@ -36,14 +36,6 @@ impl AbsoluteEvent {
     /// event, false if it's a midi event
     pub fn is_meta(&self) -> bool {
         self.event.is_meta()
-    }
-
-    pub fn get_event(&self) -> &Event {
-        &self.event
-    }
-
-    pub fn get_time(&self) -> u64 {
-        self.time
     }
 }
 
