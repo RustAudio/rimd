@@ -32,8 +32,8 @@ impl SMFWriter {
 
     /// Create a new SMFWriter with the given number of units per
     /// beat.  The SMFWriter will initially have no tracks.
-    pub fn new_with_division(ticks: i16) -> SMFWriter {
-        SMFWriter {
+    pub fn new_with_division(ticks: i16) -> Self {
+        Self {
             format: 1,
             ticks: ticks,
             tracks: Vec::new(),
@@ -42,8 +42,8 @@ impl SMFWriter {
 
     /// Create a new SMFWriter with the given format and number of
     /// units per beat.  The SMFWriter will initially have no tracks.
-    pub fn new_with_division_and_format(format: SMFFormat, ticks: i16) -> SMFWriter {
-        SMFWriter {
+    pub fn new_with_division_and_format(format: SMFFormat, ticks: i16) -> Self {
+        Self {
             format: format as u16,
             ticks: ticks,
             tracks: Vec::new(),
@@ -51,7 +51,7 @@ impl SMFWriter {
     }
 
     /// Create a writer that has all the tracks from the given SMF already added
-    pub fn from_smf(smf: SMF) -> SMFWriter {
+    pub fn from_smf(smf: SMF) -> Self {
         let mut writer = SMFWriter::new_with_division_and_format
             (smf.format, smf.division);
 

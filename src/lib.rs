@@ -256,20 +256,20 @@ pub struct SMF {
 
 impl SMF {
     /// Read an SMF file at the given path
-    pub fn from_file(path: &Path) -> Result<SMF,SMFError> {
+    pub fn from_file(path: &Path) -> Result<Self,SMFError> {
         let mut file = try!(File::open(path));
         SMFReader::read_smf(&mut file)
     }
 
     /// Read an SMF from the given reader
-    pub fn from_reader(reader: &mut dyn Read) -> Result<SMF,SMFError> {
+    pub fn from_reader(reader: &mut dyn Read) -> Result<Self,SMFError> {
         SMFReader::read_smf(reader)
     }
 
     /// Convert a type 0 (single track) to type 1 (multi track) SMF
     /// Does nothing if the SMF is already in type 1
     /// Returns None if the SMF is in type 2 (multi song)
-    pub fn to_multi_track(&self) -> Option<SMF> {
+    pub fn to_multi_track(&self) -> Option<Self> {
         match self.format {
             SMFFormat::MultiTrack => Some(self.clone()),
             SMFFormat::MultiSong => None,

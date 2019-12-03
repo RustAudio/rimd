@@ -13,13 +13,13 @@ pub struct AbsoluteEvent {
 }
 
 impl AbsoluteEvent {
-    pub fn new_midi(time: u64, midi: MidiMessage) -> AbsoluteEvent {
+    pub fn new_midi(time: u64, midi: MidiMessage) -> Self {
         AbsoluteEvent {
             time: time,
             event: Event::Midi(midi),
         }
     }
-    pub fn new_meta(time: u64, meta: MetaEvent) -> AbsoluteEvent {
+    pub fn new_meta(time: u64, meta: MetaEvent) -> Self {
         AbsoluteEvent {
             time: time,
             event: Event::Meta(meta),
@@ -187,8 +187,8 @@ pub struct SMFBuilder {
 
 impl SMFBuilder {
     /// Create a new SMFBuilder.  Initially the builder will have no tracks
-    pub fn new() -> SMFBuilder {
-        SMFBuilder {
+    pub fn new() -> Self {
+        Self {
             tracks: Vec::new(),
         }
     }

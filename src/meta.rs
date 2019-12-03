@@ -17,7 +17,7 @@ pub enum MetaError {
 }
 
 impl From<Error> for MetaError {
-    fn from(err: Error) -> MetaError {
+    fn from(err: Error) -> Self {
         MetaError::Error(err)
     }
 }
@@ -82,8 +82,8 @@ pub struct MetaEvent {
 }
 
 impl Clone for MetaEvent {
-    fn clone(&self) -> MetaEvent {
-        MetaEvent {
+    fn clone(&self) -> Self {
+        Self {
             command: self.command,
             length: self.length,
             data: self.data.clone(),
@@ -151,22 +151,22 @@ impl MetaEvent {
     }
 
     /// Extract the next meta event from a reader
-    pub fn next_event(reader: &mut dyn Read) -> Result<MetaEvent, MetaError> {
+    pub fn next_event(reader: &mut dyn Read) -> Result<Self, MetaError> {
         let command =
             match MetaCommand::from_u8(try!(read_byte(reader))) {
                 Some(c) => {c},
                 None => MetaCommand::Unknown,
             };
-        let len = match SMFReader::read_vtime(reader) {
+        let length = match SMFReader::read_vtime(reader) {
             Ok(t) => { t }
             Err(_) => { return Err(MetaError::OtherErr("Couldn't read time for meta command")); }
         };
         let mut data = Vec::new();
-        try!(read_amount(reader,&mut data,len as usize));
-        Ok(MetaEvent{
-            command: command,
-            length: len,
-            data: data
+        try!(read_amount(reader,&mut data, length as usize));
+        Ok(Self{
+            command,
+            length,
+            data
         })
     }
 
