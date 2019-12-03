@@ -32,6 +32,14 @@ pub struct SMFWriter {
 
 impl SMFWriter {
 
+    pub fn new(format: u16, ticks: i16, tracks: Vec<Vec<u8>>) -> Self {
+        Self {
+            format,
+            ticks,
+            tracks,
+        }
+    }
+
     /// Create a new SMFWriter with the given number of units per
     /// beat.  The SMFWriter will initially have no tracks.
     pub fn new_with_division(ticks: i16) -> Self {
