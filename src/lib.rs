@@ -117,6 +117,20 @@ impl Event {
             }
         }
     }
+
+    pub fn is_midi(&self) -> bool {
+        match self {
+            Event::Midi(_) => true,
+            Event::Meta(_) => false,
+        }
+    }
+
+    pub fn is_meta(&self) -> bool {
+        match self {
+            Event::Midi(_) => false,
+            Event::Meta(_) => true,
+        }
+    }
 }
 
 /// An event occuring in the track.
