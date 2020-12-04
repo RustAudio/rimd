@@ -21,7 +21,7 @@ pub fn note_num_to_name(num: u32) -> String {
 /// Read a single byte from a Reader
 pub fn read_byte(reader: &mut dyn Read) -> Result<u8,Error> {
     let mut b = [0; 1];
-    reader.read(&mut b)?;
+    reader.read_exact(&mut b)?;
     Ok(b[0])
 }
 
