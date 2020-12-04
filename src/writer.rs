@@ -114,12 +114,12 @@ impl SMFWriter {
     }
 
     fn write_event(&self, vec: &mut Vec<u8>, event: &Event, length: &mut u32, saw_eot: &mut bool) {
-        match event {
-            &Event::Midi(ref midi) => {
+        match *event {
+            Event::Midi(ref midi) => {
                 vec.extend(midi.data.iter());
                 *length += midi.data.len() as u32;
             }
-            &Event::Meta(ref meta) => {
+            Event::Meta(ref meta) => {
                 vec.push(0xff); // indicate we're writing a meta event
                 vec.push(meta.command as u8);
                 // +2 on next line for the 0xff and the command byte we just wrote
