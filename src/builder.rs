@@ -101,15 +101,9 @@ impl Ord for AbsoluteEvent {
                     (&Event::Midi(ref me),&Event::Midi(ref you)) => {
                         if      me.data(0) < you.data(0) { Ordering::Less }
                         else if me.data(0) > you.data(0) { Ordering::Greater }
-                        else {
-                            if me.data(1) < you.data(1) {
-                                Ordering::Less
-                            } else if me.data(1) > you.data(1) {
-                                Ordering::Greater
-                            } else {
-                                res
-                            }
-                        }
+                        else if me.data(1) < you.data(1) { Ordering::Less }
+                        else if me.data(1) > you.data(1) { Ordering::Greater }
+                        else { res }
                     },
                 }
             }
