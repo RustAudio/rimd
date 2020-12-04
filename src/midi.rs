@@ -331,7 +331,7 @@ impl fmt::Display for MidiMessage {
         else if self.data.len() == 3 {
             write!(f, "{}: [{},{}]\tchannel: {:?}", self.status(), self.data[1], self.data[2], self.channel())
         }
-        else if self.data.len() == 0 {
+        else if self.data.is_empty() {
             write!(f, "{}: [no data]\tchannel: {:?}", self.status(), self.channel())
         }
         else {
