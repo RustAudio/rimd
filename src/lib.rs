@@ -257,7 +257,7 @@ pub struct SMF {
 impl SMF {
     /// Read an SMF file at the given path
     pub fn from_file(path: &Path) -> Result<SMF,SMFError> {
-        let mut file = try!(File::open(path));
+        let mut file = File::open(path)?;
         SMFReader::read_smf(&mut file)
     }
 
