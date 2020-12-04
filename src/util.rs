@@ -74,7 +74,7 @@ pub fn latin1_decode(s: &[u8]) -> String {
         Ok(s) => s,
         Err(_) => match str::from_utf8(s) {
             Ok(s) => s.to_string(),
-            Err(_) => format!("[invalid string data]"),
+            Err(_) => "[invalid string data]".to_string(),
         }
     }
 }
