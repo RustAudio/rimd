@@ -3,7 +3,7 @@
 use std::iter;
 use std::io::{Read,Error,ErrorKind};
 
-static NSTRS: &'static str = "C C#D D#E F F#G G#A A#B ";
+static NSTRS: &str = "C C#D D#E F F#G G#A A#B ";
 
 /// convert a midi note number to a name
 pub fn note_num_to_name(num: u32) -> String {
