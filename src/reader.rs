@@ -108,9 +108,9 @@ impl SMFReader {
             let last = { // use status from last midi event, skip meta events
                 let mut last = 0u8;
                 for e in res.iter().rev() {
-                    match e.event {
-                        Event::Midi(ref m) => { last = m.data[0]; break; }
-                        _ => ()
+                    if let Event::Midi(ref m) = e.event {
+                        last = m.data[0];
+                        break;
                     }
                 }
                 last
@@ -118,15 +118,12 @@ impl SMFReader {
             let mut was_running = false;
             match SMFReader::next_event(reader,last,&mut was_running) {
                 Ok(event) => {
-                    match event.event {
-                        Event::Meta(ref me) => {
-                            match me.command {
-                                MetaCommand::CopyrightNotice => copyright = Some(latin1_decode(&me.data)),
-                                MetaCommand::SequenceOrTrackName => name = Some(latin1_decode(&me.data)),
-                                _ => {}
-                            }
-                        },
-                        _ => {}
+                    if let Event::Meta(ref me) = event.event {
+                        match me.command {
+                            MetaCommand::CopyrightNotice => copyright = Some(latin1_decode(&me.data)),
+                            MetaCommand::SequenceOrTrackName => name = Some(latin1_decode(&me.data)),
+                            _ => {}
+                        }
                     }
                     read_so_far += event.len();
                     if was_running {
@@ -189,13 +186,10 @@ impl SMFReader {
     /// Read an entire SMF file
     pub fn read_smf(reader: &mut dyn Read) -> Result<SMF,SMFError> {
         let mut smf = SMFReader::parse_header(reader);
-        match smf {
-            Ok(ref mut s) => {
-                for _ in 0..s.tracks.capacity() {
-                    s.tracks.push(SMFReader::parse_track(reader)?);
-                }
+        if let Ok(ref mut s) = smf {
+            for _ in 0..s.tracks.capacity() {
+                s.tracks.push(SMFReader::parse_track(reader)?);
             }
-            _ => {}
         }
         smf
     }

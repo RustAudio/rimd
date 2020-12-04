@@ -167,13 +167,10 @@ impl SMFWriter {
         let mut cur_time: u64 = 0;
         let mut saw_eot = false;
 
-        match name {
-            Some(n) => {
-                let namemeta = Event::Meta(MetaEvent::sequence_or_track_name(n));
-                length += SMFWriter::write_vtime(0,&mut vec).unwrap();
-                self.write_event(&mut vec, &namemeta, &mut length, &mut saw_eot);
-            }
-            None => {}
+        if let Some(n) = name {
+            let namemeta = Event::Meta(MetaEvent::sequence_or_track_name(n));
+            length += SMFWriter::write_vtime(0,&mut vec).unwrap();
+            self.write_event(&mut vec, &namemeta, &mut length, &mut saw_eot);
         }
 
         for ev in track {
