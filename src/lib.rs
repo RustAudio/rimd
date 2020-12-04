@@ -302,7 +302,7 @@ impl SMF {
                     division: self.division,
                 };
                 for events in &mut tracks {
-                    if events.len() > 0 {
+                    if !events.is_empty() {
                         let mut time = 0;
                         for event in events.iter_mut() {
                             let tmp = event.vtime;
