@@ -40,9 +40,11 @@ impl SMFReader {
         let tracks = (header[10] as u16) << 8 | header[11] as u16;
         let division = (header[12] as i16) << 8 | header[13] as i16;
 
-        Ok(SMF { format: format,
-                 tracks: Vec::with_capacity(tracks as usize),
-                 division: division } )
+        Ok(SMF {
+            format,
+            tracks: Vec::with_capacity(tracks as usize),
+            division,
+        })
     }
 
     fn next_event(reader: &mut dyn Read, laststat: u8, was_running: &mut bool) -> Result<TrackEvent,SMFError> {
@@ -156,9 +158,9 @@ impl SMFReader {
             }
         }
         Ok(Track {
-            copyright: copyright,
-            name: name,
-            events: res
+            copyright,
+            name,
+            events: res,
         })
     }
 

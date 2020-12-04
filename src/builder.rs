@@ -15,13 +15,13 @@ pub struct AbsoluteEvent {
 impl AbsoluteEvent {
     pub fn new_midi(time: u64, midi: MidiMessage) -> AbsoluteEvent {
         AbsoluteEvent {
-            time: time,
+            time,
             event: Event::Midi(midi),
         }
     }
     pub fn new_meta(time: u64, meta: MetaEvent) -> AbsoluteEvent {
         AbsoluteEvent {
-            time: time,
+            time,
             event: Event::Meta(meta),
         }
     }
@@ -154,7 +154,7 @@ impl TrackBuilder {
                             };
                         prev_time = ev.time;
                         events.push(TrackEvent {
-                            vtime: vtime,
+                            vtime,
                             event: ev.event,
                         });
                     }
@@ -215,7 +215,7 @@ impl SMFBuilder {
             let vtime = bev.time - cur_time;
             cur_time = vtime;
             TrackEvent {
-                vtime: vtime,
+                vtime,
                 event: bev.event.clone(),
             }
         }).collect();
@@ -270,7 +270,7 @@ impl SMFBuilder {
         match self.tracks.index_mut(track).events {
             EventContainer::Heap(ref mut heap) => {
                 heap.push(AbsoluteEvent {
-                    time: time,
+                    time,
                     event: Event::Midi(msg),
                 });
             }
@@ -302,7 +302,7 @@ impl SMFBuilder {
         match self.tracks.index_mut(track).events {
             EventContainer::Heap(ref mut heap) => {
                 heap.push(AbsoluteEvent {
-                    time: time,
+                    time,
                     event: Event::Meta(event),
                 });
             }
