@@ -157,16 +157,16 @@ impl MetaEvent {
                 Some(c) => {c},
                 None => MetaCommand::Unknown,
             };
-        let len = match SMFReader::read_vtime(reader) {
+        let length = match SMFReader::read_vtime(reader) {
             Ok(t) => { t }
             Err(_) => { return Err(MetaError::OtherErr("Couldn't read time for meta command")); }
         };
         let mut data = Vec::new();
-        read_amount(reader,&mut data,len as usize)?;
+        read_amount(reader,&mut data,length as usize)?;
         Ok(MetaEvent{
-            command: command,
-            length: len,
-            data: data
+            command,
+            length,
+            data,
         })
     }
 
@@ -350,7 +350,7 @@ impl MetaEvent {
         MetaEvent {
             command: MetaCommand::SequencerSpecificEvent,
             length: data.len() as u64,
-            data: data,
+            data,
         }
     }
 

@@ -35,7 +35,7 @@ impl SMFWriter {
     pub fn new_with_division(ticks: i16) -> SMFWriter {
         SMFWriter {
             format: 1,
-            ticks: ticks,
+            ticks,
             tracks: Vec::new(),
         }
     }
@@ -45,7 +45,7 @@ impl SMFWriter {
     pub fn new_with_division_and_format(format: SMFFormat, ticks: i16) -> SMFWriter {
         SMFWriter {
             format: format as u16,
-            ticks: ticks,
+            ticks,
             tracks: Vec::new(),
         }
     }
