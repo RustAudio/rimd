@@ -74,10 +74,6 @@ impl PartialEq for AbsoluteEvent {
             false
         }
     }
-
-    fn ne(&self, other: &AbsoluteEvent) -> bool {
-        !(self.eq(other))
-    }
 }
 
 // Implement `Ord` and sort messages by time
