@@ -117,9 +117,9 @@ impl fmt::Display for MetaEvent {
                    MetaCommand::CuePoint => format!("CuePoint: {}", latin1_decode(&self.data)),
                    MetaCommand::MIDIChannelPrefixAssignment => format!("MIDI Channel Prefix Assignment, channel: {}", self.data[0]+1),
                    MetaCommand::MIDIPortPrefixAssignment => format!("MIDI Port Prefix Assignment, port: {}", self.data[0]),
-                   MetaCommand::EndOfTrack => format!("End Of Track"),
+                   MetaCommand::EndOfTrack => "End Of Track".to_string(),
                    MetaCommand::TempoSetting => format!("Set Tempo, microseconds/quarter note: {}", self.data_as_u64(3)),
-                   MetaCommand::SMPTEOffset => format!("SMPTEOffset"),
+                   MetaCommand::SMPTEOffset => "SMPTEOffset".to_string(),
                    MetaCommand::TimeSignature => format!("Time Signature: {}/{}, {} ticks/metronome click, {} 32nd notes/quarter note",
                                                          self.data[0],
                                                          2usize.pow(self.data[1] as u32),
@@ -132,7 +132,7 @@ impl fmt::Display for MetaEvent {
                                                             1 => "Minor",
                                                             _ => "Invalid Signature",
                                                         }),
-                   MetaCommand::SequencerSpecificEvent => format!("SequencerSpecificEvent"),
+                   MetaCommand::SequencerSpecificEvent => "SequencerSpecificEvent".to_string(),
                    MetaCommand::Unknown => format!("Unknown, length: {}", self.data.len()),
                })
     }
