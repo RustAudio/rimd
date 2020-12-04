@@ -81,7 +81,7 @@ impl SMFWriter {
         let val_mask = 0x7F as u64;
         loop {
             let mut to_write = (cur & val_mask) as u8;
-            cur = cur >> 7;
+            cur >>= 7;
             if continuation {
                 // we're writing a continuation byte, so set the bit
                 to_write |= cont_mask;
@@ -147,7 +147,7 @@ impl SMFWriter {
             let lbyte = (*length & 0xFF) as u8;
             // 7-i because smf is big endian and we want to put this in bytes 4-7
             vec[7-i] = lbyte;
-            *length = (*length)>>8;
+            *length >>= 8;
         }
     }
 

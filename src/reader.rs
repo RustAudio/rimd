@@ -181,7 +181,7 @@ impl SMFReader {
             if (next & cont_mask) == 0 {
                 break;
             }
-            res = res << 7;
+            res <<= 7;
         }
         Ok(res)
     }
