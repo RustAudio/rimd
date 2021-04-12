@@ -213,7 +213,7 @@ impl SMFBuilder {
         let vec = track.map(|bev| {
             assert!(bev.time >= cur_time);
             let vtime = bev.time - cur_time;
-            cur_time = vtime;
+            cur_time = bev.time;
             TrackEvent {
                 vtime: vtime,
                 event: bev.event.clone(),
