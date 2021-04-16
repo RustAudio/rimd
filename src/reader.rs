@@ -40,9 +40,11 @@ impl SMFReader {
         let tracks = (header[10] as u16) << 8 | header[11] as u16;
         let division = (header[12] as i16) << 8 | header[13] as i16;
 
-        Ok(SMF { format: format,
-                 tracks: Vec::with_capacity(tracks as usize),
-                 division: division } )
+        Ok(SMF {
+            format,
+            tracks: Vec::with_capacity(tracks as usize),
+            division,
+        })
     }
 
     fn next_event(reader: &mut dyn Read, laststat: u8, was_running: &mut bool) -> Result<TrackEvent,SMFError> {
@@ -106,9 +108,9 @@ impl SMFReader {
             let last = { // use status from last midi event, skip meta events
                 let mut last = 0u8;
                 for e in res.iter().rev() {
-                    match e.event {
-                        Event::Midi(ref m) => { last = m.data[0]; break; }
-                        _ => ()
+                    if let Event::Midi(ref m) = e.event {
+                        last = m.data[0];
+                        break;
                     }
                 }
                 last
@@ -116,15 +118,12 @@ impl SMFReader {
             let mut was_running = false;
             match SMFReader::next_event(reader,last,&mut was_running) {
                 Ok(event) => {
-                    match event.event {
-                        Event::Meta(ref me) => {
-                            match me.command {
-                                MetaCommand::CopyrightNotice => copyright = Some(latin1_decode(&me.data)),
-                                MetaCommand::SequenceOrTrackName => name = Some(latin1_decode(&me.data)),
-                                _ => {}
-                            }
-                        },
-                        _ => {}
+                    if let Event::Meta(ref me) = event.event {
+                        match me.command {
+                            MetaCommand::CopyrightNotice => copyright = Some(latin1_decode(&me.data)),
+                            MetaCommand::SequenceOrTrackName => name = Some(latin1_decode(&me.data)),
+                            _ => {}
+                        }
                     }
                     read_so_far += event.len();
                     if was_running {
@@ -156,9 +155,9 @@ impl SMFReader {
             }
         }
         Ok(Track {
-            copyright: copyright,
-            name: name,
-            events: res
+            copyright,
+            name,
+            events: res,
         })
     }
 
@@ -179,7 +178,7 @@ impl SMFReader {
             if (next & cont_mask) == 0 {
                 break;
             }
-            res = res << 7;
+            res <<= 7;
         }
         Ok(res)
     }
@@ -187,13 +186,10 @@ impl SMFReader {
     /// Read an entire SMF file
     pub fn read_smf(reader: &mut dyn Read) -> Result<SMF,SMFError> {
         let mut smf = SMFReader::parse_header(reader);
-        match smf {
-            Ok(ref mut s) => {
-                for _ in 0..s.tracks.capacity() {
-                    s.tracks.push(SMFReader::parse_track(reader)?);
-                }
+        if let Ok(ref mut s) = smf {
+            for _ in 0..s.tracks.capacity() {
+                s.tracks.push(SMFReader::parse_track(reader)?);
             }
-            _ => {}
         }
         smf
     }

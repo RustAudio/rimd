@@ -35,7 +35,7 @@ impl SMFWriter {
     pub fn new_with_division(ticks: i16) -> SMFWriter {
         SMFWriter {
             format: 1,
-            ticks: ticks,
+            ticks,
             tracks: Vec::new(),
         }
     }
@@ -45,7 +45,7 @@ impl SMFWriter {
     pub fn new_with_division_and_format(format: SMFFormat, ticks: i16) -> SMFWriter {
         SMFWriter {
             format: format as u16,
-            ticks: ticks,
+            ticks,
             tracks: Vec::new(),
         }
     }
@@ -81,7 +81,7 @@ impl SMFWriter {
         let val_mask = 0x7F as u64;
         loop {
             let mut to_write = (cur & val_mask) as u8;
-            cur = cur >> 7;
+            cur >>= 7;
             if continuation {
                 // we're writing a continuation byte, so set the bit
                 to_write |= cont_mask;
@@ -114,12 +114,12 @@ impl SMFWriter {
     }
 
     fn write_event(&self, vec: &mut Vec<u8>, event: &Event, length: &mut u32, saw_eot: &mut bool) {
-        match event {
-            &Event::Midi(ref midi) => {
+        match *event {
+            Event::Midi(ref midi) => {
                 vec.extend(midi.data.iter());
                 *length += midi.data.len() as u32;
             }
-            &Event::Meta(ref meta) => {
+            Event::Meta(ref meta) => {
                 vec.push(0xff); // indicate we're writing a meta event
                 vec.push(meta.command as u8);
                 // +2 on next line for the 0xff and the command byte we just wrote
@@ -147,7 +147,7 @@ impl SMFWriter {
             let lbyte = (*length & 0xFF) as u8;
             // 7-i because smf is big endian and we want to put this in bytes 4-7
             vec[7-i] = lbyte;
-            *length = (*length)>>8;
+            *length >>= 8;
         }
     }
 
@@ -167,13 +167,10 @@ impl SMFWriter {
         let mut cur_time: u64 = 0;
         let mut saw_eot = false;
 
-        match name {
-            Some(n) => {
-                let namemeta = Event::Meta(MetaEvent::sequence_or_track_name(n));
-                length += SMFWriter::write_vtime(0,&mut vec).unwrap();
-                self.write_event(&mut vec, &namemeta, &mut length, &mut saw_eot);
-            }
-            None => {}
+        if let Some(n) = name {
+            let namemeta = Event::Meta(MetaEvent::sequence_or_track_name(n));
+            length += SMFWriter::write_vtime(0,&mut vec).unwrap();
+            self.write_event(&mut vec, &namemeta, &mut length, &mut saw_eot);
         }
 
         for ev in track {

@@ -15,13 +15,13 @@ pub struct AbsoluteEvent {
 impl AbsoluteEvent {
     pub fn new_midi(time: u64, midi: MidiMessage) -> AbsoluteEvent {
         AbsoluteEvent {
-            time: time,
+            time,
             event: Event::Midi(midi),
         }
     }
     pub fn new_meta(time: u64, meta: MetaEvent) -> AbsoluteEvent {
         AbsoluteEvent {
-            time: time,
+            time,
             event: Event::Meta(meta),
         }
     }
@@ -74,10 +74,6 @@ impl PartialEq for AbsoluteEvent {
             false
         }
     }
-
-    fn ne(&self, other: &AbsoluteEvent) -> bool {
-        !(self.eq(other))
-    }
 }
 
 // Implement `Ord` and sort messages by time
@@ -101,15 +97,9 @@ impl Ord for AbsoluteEvent {
                     (&Event::Midi(ref me),&Event::Midi(ref you)) => {
                         if      me.data(0) < you.data(0) { Ordering::Less }
                         else if me.data(0) > you.data(0) { Ordering::Greater }
-                        else {
-                            if me.data(1) < you.data(1) {
-                                Ordering::Less
-                            } else if me.data(1) > you.data(1) {
-                                Ordering::Greater
-                            } else {
-                                res
-                            }
-                        }
+                        else if me.data(1) < you.data(1) { Ordering::Less }
+                        else if me.data(1) > you.data(1) { Ordering::Greater }
+                        else { res }
                     },
                 }
             }
@@ -154,7 +144,7 @@ impl TrackBuilder {
                             };
                         prev_time = ev.time;
                         events.push(TrackEvent {
-                            vtime: vtime,
+                            vtime,
                             event: ev.event,
                         });
                     }
@@ -215,7 +205,7 @@ impl SMFBuilder {
             let vtime = bev.time - cur_time;
             cur_time = bev.time;
             TrackEvent {
-                vtime: vtime,
+                vtime,
                 event: bev.event.clone(),
             }
         }).collect();
@@ -270,7 +260,7 @@ impl SMFBuilder {
         match self.tracks.index_mut(track).events {
             EventContainer::Heap(ref mut heap) => {
                 heap.push(AbsoluteEvent {
-                    time: time,
+                    time,
                     event: Event::Midi(msg),
                 });
             }
@@ -302,7 +292,7 @@ impl SMFBuilder {
         match self.tracks.index_mut(track).events {
             EventContainer::Heap(ref mut heap) => {
                 heap.push(AbsoluteEvent {
-                    time: time,
+                    time,
                     event: Event::Meta(event),
                 });
             }

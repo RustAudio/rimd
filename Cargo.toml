@@ -2,7 +2,7 @@
 name = "rimd"
 description = "Library for handling Midi and reading and writing Standard Midi Files in Rust"
 version = "0.0.3"
-authors = ["Nick Lanham <nick@afternight.org>"]
+authors = ["Nick Lanham <nick@afternight.org>", "Alex Kesling <alex@kesling.co>"]
 homepage = "https://github.com/RustAudio/rimd"
 repository = "https://github.com/RustAudio/rimd"
 documentation = "https://nicklan.github.io/rimd/target/doc/rimd/index.html"
